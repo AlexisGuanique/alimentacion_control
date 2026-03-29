@@ -111,7 +111,7 @@ export default function ChatWidget({ onDataChanged }: ChatWidgetProps) {
       {/* FAB */}
       <button
         onClick={() => setOpen(true)}
-        className={`fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center z-40 ${
+        className={`fixed bottom-6 right-4 sm:bottom-6 sm:right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center z-40 ${
           open ? "hidden" : "flex"
         }`}
       >
