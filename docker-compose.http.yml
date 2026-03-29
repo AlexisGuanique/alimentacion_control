@@ -11,6 +11,8 @@ services:
       - "8010:8000"
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=sqlite:////app/data/database.db
     volumes:
       - db_data:/app/data
 
