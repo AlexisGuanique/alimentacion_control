@@ -1,0 +1,214 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+export interface Meal {
+  id: number;
+  description: string;
+  calories: number;
+  category: string;
+  source: string;
+  raw_text: string | null;
+  created_at: string;
+  user_id: string;
+}
+
+export interface DailyStats {
+  date: string;
+  total_calories: number;
+  meal_count: number;
+  breakdown: Record<string, number>;
+}
+
+export interface WeeklyData {
+  weekly_data: Record<string, number>;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  is_active: boolean;
+  created_at: string;
+  height_cm: number | null;
+  weight_kg: number | null;
+  age: number | null;
+  gender: string | null;
+  activity_level: string | null;
+  fitness_goal: string | null;
+  daily_calories_target: number | null;
+  goal_summary: string | null;
+}
+
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("nutritrack_token");
+}
+
+function authHeaders(): HeadersInit {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function login(email: string, password: string): Promise<string> {
+  const form = new URLSearchParams();
+  form.append("username", email);
+  form.append("password", password);
+
+  const res = await fetch(`${API_URL}/auth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form,
+  });
+
+  if (!res.ok) throw new Error("Credenciales inválidas");
+  const data = await res.json();
+  return data.access_token;
+}
+
+export async function register(payload: {
+  email: string;
+  password: string;
+  full_name: string;
+}): Promise<User> {
+  const res = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Error al registrarse");
+  }
+  return res.json();
+}
+
+export async function getMe(): Promise<User> {
+  const res = await fetch(`${API_URL}/auth/me`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("No autenticado");
+  return res.json();
+}
+
+export async function getMeals(since?: string): Promise<Meal[]> {
+  const params = since ? `?since=${since}` : "";
+  const res = await fetch(`${API_URL}/meals${params}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener comidas");
+  return res.json();
+}
+
+export async function createMealManual(meal: {
+  description: string;
+  calories: number;
+  category: string;
+  source?: string;
+}): Promise<Meal> {
+  const res = await fetch(`${API_URL}/meals`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ ...meal, source: meal.source || "Manual" }),
+  });
+  if (!res.ok) throw new Error("Error al crear comida");
+  return res.json();
+}
+
+export async function createMealAI(text: string): Promise<Meal> {
+  const res = await fetch(`${API_URL}/meals/ai?source=Chatbot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error("Error al analizar alimento");
+  return res.json();
+}
+
+export async function deleteMeal(id: number): Promise<void> {
+  const res = await fetch(`${API_URL}/meals/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al eliminar comida");
+}
+
+export async function getDailyStats(date?: string): Promise<DailyStats> {
+  const params = date ? `?target_date=${date}` : "";
+  const res = await fetch(`${API_URL}/stats/daily${params}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener estadísticas");
+  return res.json();
+}
+
+export async function getWeeklyStats(): Promise<WeeklyData> {
+  const res = await fetch(`${API_URL}/stats/weekly`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener estadísticas semanales");
+  return res.json();
+}
+
+export async function chat(
+  message: string,
+  history: { role: string; content: string }[]
+): Promise<string> {
+  const res = await fetch(`${API_URL}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ message, history }),
+  });
+  if (!res.ok) throw new Error("Error en el chat");
+  const data = await res.json();
+  return data.response;
+}
+
+export interface GoalResult {
+  daily_calories_target: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  summary: string;
+  recommendations: string[];
+}
+
+export async function updateProfile(data: Partial<User>): Promise<User> {
+  const res = await fetch(`${API_URL}/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al actualizar perfil");
+  return res.json();
+}
+
+export async function changePassword(
+  current_password: string,
+  new_password: string
+): Promise<void> {
+  const res = await fetch(`${API_URL}/profile/password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ current_password, new_password }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Error al cambiar contraseña");
+  }
+}
+
+export async function calculateGoal(data: {
+  height_cm: number;
+  weight_kg: number;
+  age: number;
+  gender: string;
+  activity_level: string;
+  fitness_goal: string;
+}): Promise<GoalResult> {
+  const res = await fetch(`${API_URL}/profile/calculate-goal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al calcular objetivo");
+  return res.json();
+}
