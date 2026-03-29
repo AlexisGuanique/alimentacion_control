@@ -12,7 +12,7 @@ services:
     env_file:
       - .env
     volumes:
-      - db_data:/app/database.db
+      - db_data:/app/data
     networks:
       - nutritrack_net
     healthcheck:
