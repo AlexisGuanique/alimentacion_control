@@ -44,11 +44,15 @@ app = FastAPI(
 )
 
 _ALLOWED_ORIGINS = [
-    # Producción
+    # Producción con dominio
     "https://simplenamed.com",
     "https://www.simplenamed.com",
+    # Servidor por IP
+    "http://34.29.59.97:3010",
+    "http://34.29.59.97",
     # Desarrollo local
     "http://localhost:3000",
+    "http://localhost:3010",
     "http://127.0.0.1:3000",
 ]
 
