@@ -26,7 +26,7 @@ interface Props {
 
 export default function AddWorkoutModal({ userWeightKg, onClose, onAdded }: Props) {
   const weight = userWeightKg || 70;
-  const [mode, setMode] = useState<"manual" | "ai">("manual");
+  const [mode, setMode] = useState<"manual" | "ai">("ai");
 
   // ── Manual state ──────────────────────────────────────────────────────────
   const [workoutType, setWorkoutType] = useState("Cardio");

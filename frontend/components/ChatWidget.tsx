@@ -111,7 +111,7 @@ export default function ChatWidget({ onDataChanged }: ChatWidgetProps) {
       {/* FAB */}
       <button
         onClick={() => setOpen(true)}
-        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center z-40 ${
+        className={`fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center z-40 ${
           open ? "hidden" : "flex"
         }`}
       >
@@ -123,7 +123,7 @@ export default function ChatWidget({ onDataChanged }: ChatWidgetProps) {
 
       {/* Chat Window */}
       {open && (
-        <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 w-full sm:w-96 h-[85vh] sm:h-[560px] bg-white sm:rounded-2xl shadow-2xl border border-gray-100 flex flex-col z-50 overflow-hidden">
+        <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 w-full sm:w-96 h-[80vh] sm:h-[560px] bg-white sm:rounded-2xl shadow-2xl border border-gray-100 flex flex-col z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary text-white">
             <div className="flex items-center gap-2">

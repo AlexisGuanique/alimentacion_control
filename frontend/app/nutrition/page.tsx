@@ -96,7 +96,7 @@ export default function NutritionPage() {
 
   return (
     <AppLayout userName={user?.full_name} userEmail={user?.email} onLogout={handleLogout}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28 sm:pb-8 space-y-6">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
