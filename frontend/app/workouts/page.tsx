@@ -207,7 +207,12 @@ export default function WorkoutsPage() {
             <Dumbbell className="w-4 h-4 text-blue-500" />
             Entrenamientos de Hoy
           </h3>
-          <WorkoutList workouts={workouts} onDelete={handleWorkoutDeleted} />
+          <WorkoutList
+            workouts={workouts}
+            onDelete={handleWorkoutDeleted}
+            onUpdate={(updated) => setWorkouts((prev) => prev.map((w) => w.id === updated.id ? updated : w))}
+            userWeightKg={user?.weight_kg}
+          />
         </div>
       </div>
 

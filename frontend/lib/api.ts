@@ -124,6 +124,16 @@ export async function createMealAI(text: string): Promise<Meal> {
   return res.json();
 }
 
+export async function updateMeal(id: number, data: { description?: string; calories?: number; category?: string }): Promise<Meal> {
+  const res = await fetch(`${API_URL}/meals/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al actualizar comida");
+  return res.json();
+}
+
 export async function deleteMeal(id: number): Promise<void> {
   const res = await fetch(`${API_URL}/meals/${id}`, {
     method: "DELETE",
@@ -205,6 +215,16 @@ export async function createWorkout(data: {
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Error al registrar entrenamiento");
+  return res.json();
+}
+
+export async function updateWorkout(id: number, data: { workout_type?: string; duration_minutes?: number; calories_burned?: number; notes?: string; details_json?: string }): Promise<Workout> {
+  const res = await fetch(`${API_URL}/workouts/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al actualizar entrenamiento");
   return res.json();
 }
 

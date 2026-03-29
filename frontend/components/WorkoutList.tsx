@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Dumbbell, Timer, Flame, FileText } from "lucide-react";
+import { Trash2, Dumbbell, Timer, Flame, FileText, Pencil } from "lucide-react";
 import { deleteWorkout, Workout } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import ConfirmModal from "./ConfirmModal";
+import EditWorkoutModal from "./EditWorkoutModal";
 
 function WorkoutDetails({ details_json }: { details_json: string | null }) {
   if (!details_json) return null;
@@ -49,10 +50,13 @@ const TYPE_STYLES: Record<string, string> = {
 interface Props {
   workouts: Workout[];
   onDelete: (id: number) => void;
+  onUpdate?: (updated: Workout) => void;
+  userWeightKg?: number | null;
 }
 
-export default function WorkoutList({ workouts, onDelete }: Props) {
+export default function WorkoutList({ workouts, onDelete, onUpdate, userWeightKg }: Props) {
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [editWorkout, setEditWorkout] = useState<Workout | null>(null);
 
   const handleDelete = async () => {
     if (confirmId === null) return;
@@ -80,6 +84,15 @@ export default function WorkoutList({ workouts, onDelete }: Props) {
 
   return (
     <>
+      {editWorkout && (
+        <EditWorkoutModal
+          workout={editWorkout}
+          userWeightKg={userWeightKg}
+          onClose={() => setEditWorkout(null)}
+          onUpdated={(updated) => { onUpdate?.(updated); setEditWorkout(null); }}
+        />
+      )}
+
       {/* Cards — mobile & tablet */}
       <div className="lg:hidden space-y-3">
         {workouts.map((w) => (
@@ -88,12 +101,20 @@ export default function WorkoutList({ workouts, onDelete }: Props) {
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${TYPE_STYLES[w.workout_type] || "bg-gray-100 text-gray-700"}`}>
                 {w.workout_type}
               </span>
-              <button
-                onClick={() => setConfirmId(w.id)}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setEditWorkout(w)}
+                  className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setConfirmId(w.id)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="flex items-center gap-1.5 text-gray-600">
@@ -157,12 +178,20 @@ export default function WorkoutList({ workouts, onDelete }: Props) {
                 </td>
                 <td className="px-5 py-3.5 text-gray-400 text-xs whitespace-nowrap">{formatDate(w.created_at)}</td>
                 <td className="px-5 py-3.5">
-                  <button
-                    onClick={() => setConfirmId(w.id)}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEditWorkout(w)}
+                      className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setConfirmId(w.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

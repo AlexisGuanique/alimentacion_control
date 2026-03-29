@@ -187,7 +187,11 @@ export default function NutritionPage() {
             <Apple className="w-4 h-4 text-primary" />
             Comidas de Hoy
           </h3>
-          <MealTable meals={meals} onDelete={handleMealDeleted} />
+          <MealTable
+            meals={meals}
+            onDelete={handleMealDeleted}
+            onUpdate={(updated) => setMeals((prev) => prev.map((m) => m.id === updated.id ? updated : m))}
+          />
         </div>
       </div>
 

@@ -145,6 +145,14 @@ class WorkoutCreate(SQLModel):
     details_json: Optional[str] = None
 
 
+class WorkoutUpdate(SQLModel):
+    workout_type: Optional[WorkoutType] = None
+    duration_minutes: Optional[int] = None
+    calories_burned: Optional[float] = None
+    notes: Optional[str] = None
+    details_json: Optional[str] = None
+
+
 class WorkoutRead(SQLModel):
     id: int
     user_id: str
@@ -180,6 +188,12 @@ class Meal(MealBase, table=True):
 
 class MealCreate(MealBase):
     pass
+
+
+class MealUpdate(SQLModel):
+    description: Optional[str] = None
+    calories: Optional[float] = None
+    category: Optional[FoodCategory] = None
 
 
 class MealRead(MealBase):

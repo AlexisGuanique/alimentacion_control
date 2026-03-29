@@ -1,26 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, ChevronDown, ChevronUp, Search, Clock, Flame } from "lucide-react";
+import { Trash2, ChevronDown, ChevronUp, Search, Clock, Flame, Pencil } from "lucide-react";
 import { Meal, deleteMeal } from "@/lib/api";
 import { formatDate, CATEGORY_COLORS, SOURCE_ICONS } from "@/lib/utils";
 import ConfirmModal from "@/components/ConfirmModal";
 import MealDetailModal from "@/components/MealDetailModal";
+import EditMealModal from "@/components/EditMealModal";
 
 interface MealTableProps {
   meals: Meal[];
   onDelete: (id: number) => void;
+  onUpdate?: (updated: Meal) => void;
 }
 
 type SortKey = "created_at" | "calories" | "category";
 
-export default function MealTable({ meals, onDelete }: MealTableProps) {
+export default function MealTable({ meals, onDelete, onUpdate }: MealTableProps) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortAsc, setSortAsc] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [detailMeal, setDetailMeal] = useState<Meal | null>(null);
+  const [editMeal, setEditMeal] = useState<Meal | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -80,6 +83,13 @@ export default function MealTable({ meals, onDelete }: MealTableProps) {
         onDelete={(id) => { setDetailMeal(null); setConfirmId(id); }}
       />
     )}
+    {editMeal && (
+      <EditMealModal
+        meal={editMeal}
+        onClose={() => setEditMeal(null)}
+        onUpdated={(updated) => { onUpdate?.(updated); setEditMeal(null); }}
+      />
+    )}
     {confirmId !== null && (
       <ConfirmModal
         title="Eliminar comida"
@@ -131,13 +141,21 @@ export default function MealTable({ meals, onDelete }: MealTableProps) {
                   <p className="font-medium text-gray-900 text-sm leading-snug line-clamp-2">
                     {meal.description}
                   </p>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setConfirmId(meal.id); }}
-                    disabled={deleting === meal.id}
-                    className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0 disabled:opacity-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditMeal(meal); }}
+                      className="text-gray-300 hover:text-primary transition-colors p-0.5"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmId(meal.id); }}
+                      disabled={deleting === meal.id}
+                      className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-50 p-0.5"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -243,13 +261,21 @@ export default function MealTable({ meals, onDelete }: MealTableProps) {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setConfirmId(meal.id); }}
-                      disabled={deleting === meal.id}
-                      className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all disabled:opacity-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditMeal(meal); }}
+                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmId(meal.id); }}
+                        disabled={deleting === meal.id}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

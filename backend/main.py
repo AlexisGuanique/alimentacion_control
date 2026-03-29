@@ -26,6 +26,7 @@ from models import (
     Meal,
     MealCreate,
     MealRead,
+    MealUpdate,
     MealSource,
     PasswordChange,
     Token,
@@ -36,6 +37,7 @@ from models import (
     WorkoutCreate,
     WorkoutRead,
     WorkoutSession,
+    WorkoutUpdate,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -243,6 +245,25 @@ async def create_meal_ai(
     return meal
 
 
+@app.patch("/meals/{meal_id}", response_model=MealRead)
+def update_meal(
+    meal_id: int,
+    meal_in: MealUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    meal = session.get(Meal, meal_id)
+    if not meal or meal.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Comida no encontrada.")
+    data = meal_in.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(meal, field, value)
+    session.add(meal)
+    session.commit()
+    session.refresh(meal)
+    return meal
+
+
 @app.delete("/meals/{meal_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_meal(
     meal_id: int,
@@ -372,6 +393,25 @@ async def create_workout_ai(
         notes=result.get("notes"),
         details_json=_json.dumps(result.get("details", {}), ensure_ascii=False),
     )
+    session.add(workout)
+    session.commit()
+    session.refresh(workout)
+    return workout
+
+
+@app.patch("/workouts/{workout_id}", response_model=WorkoutRead)
+def update_workout(
+    workout_id: int,
+    workout_in: WorkoutUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    workout = session.get(WorkoutSession, workout_id)
+    if not workout or workout.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Entrenamiento no encontrado.")
+    data = workout_in.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(workout, field, value)
     session.add(workout)
     session.commit()
     session.refresh(workout)
