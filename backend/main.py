@@ -44,7 +44,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="NutriTrack AI API",
+    title="NutriTrack IA API",
     description="API para gestión nutricional inteligente con soporte de WhatsApp",
     version="1.0.0",
 )

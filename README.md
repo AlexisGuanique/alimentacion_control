@@ -1,15 +1,15 @@
-# NutriTrack AI 🥗
+# NutriTrack IA 🥗
 
 Solución integral de gestión nutricional con IA. Registra tu ingesta calórica mediante lenguaje natural, chatbot web o WhatsApp.
 
 ## Stack
 
-| Capa | Tecnología |
-|---|---|
-| Backend | FastAPI + SQLModel + LangChain + Gemini |
-| Frontend | Next.js 14 + TypeScript + Tailwind + Shadcn/UI |
-| Base de datos | SQLite (persistida en Docker volume) |
-| Infraestructura | Docker + Docker Compose |
+| Capa            | Tecnología                                    |
+| --------------- | ---------------------------------------------- |
+| Backend         | FastAPI + SQLModel + LangChain + Gemini        |
+| Frontend        | Next.js 14 + TypeScript + Tailwind + Shadcn/UI |
+| Base de datos   | SQLite (persistida en Docker volume)           |
+| Infraestructura | Docker + Docker Compose                        |
 
 ## Inicio Rápido
 
@@ -33,6 +33,7 @@ docker compose up --build
 ### 3. Desarrollo local (sin Docker)
 
 **Backend:**
+
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
@@ -41,6 +42,7 @@ uvicorn main:app --reload
 ```
 
 **Frontend:**
+
 ```bash
 cd frontend
 npm install
@@ -78,18 +80,18 @@ control_calorias/
 
 ## API Endpoints
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| POST | `/auth/register` | Registro de usuario |
-| POST | `/auth/token` | Login → JWT |
-| GET | `/auth/me` | Usuario autenticado |
-| GET | `/meals` | Listar comidas |
-| POST | `/meals` | Crear comida manual |
-| POST | `/meals/ai` | Crear comida con IA |
-| DELETE | `/meals/{id}` | Eliminar comida |
-| GET | `/stats/daily` | Estadísticas del día |
-| GET | `/stats/weekly` | Estadísticas semanales |
-| POST | `/chat` | Chat con NutriBot |
+| Método | Ruta               | Descripción            |
+| ------- | ------------------ | ----------------------- |
+| POST    | `/auth/register` | Registro de usuario     |
+| POST    | `/auth/token`    | Login → JWT            |
+| GET     | `/auth/me`       | Usuario autenticado     |
+| GET     | `/meals`         | Listar comidas          |
+| POST    | `/meals`         | Crear comida manual     |
+| POST    | `/meals/ai`      | Crear comida con IA     |
+| DELETE  | `/meals/{id}`    | Eliminar comida         |
+| GET     | `/stats/daily`   | Estadísticas del día  |
+| GET     | `/stats/weekly`  | Estadísticas semanales |
+| POST    | `/chat`          | Chat con NutriBot       |
 
 ## Generación de JWT_SECRET seguro
 

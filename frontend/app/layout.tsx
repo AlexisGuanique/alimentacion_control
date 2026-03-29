@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NutriTrack AI",
+  title: "NutriTrack IA",
   description: "Gestión nutricional inteligente con IA",
 };
 

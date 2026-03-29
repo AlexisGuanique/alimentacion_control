@@ -57,8 +57,8 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-white mb-4 shadow-lg">
             <Leaf className="w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">NutriTrack AI</h1>
-          <p className="text-gray-500 mt-1">Tu nutricionista personal con IA</p>
+          <h1 className="text-3xl font-bold text-gray-900">NutriTrack IA</h1>
+          <p className="text-gray-500 mt-1">Tu nutricionista y entrenador personal con IA</p>
         </div>
 
         {/* Card */}

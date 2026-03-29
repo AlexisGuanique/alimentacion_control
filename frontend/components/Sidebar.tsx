@@ -53,7 +53,7 @@ export default function Sidebar({ userName, userEmail, onLogout }: SidebarProps)
           <Leaf className="w-4 h-4 text-white" />
         </div>
         <div>
-          <p className="text-sm font-bold text-gray-900 leading-tight">NutriTrack AI</p>
+          <p className="text-sm font-bold text-gray-900 leading-tight">NutriTrack IA</p>
           <p className="text-xs text-gray-400 leading-tight">Fitness & Nutrición</p>
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function Sidebar({ userName, userEmail, onLogout }: SidebarProps)
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <Leaf className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-gray-900 text-sm">NutriTrack AI</span>
+          <span className="font-bold text-gray-900 text-sm">NutriTrack IA</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}
