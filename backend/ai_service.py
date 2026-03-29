@@ -14,7 +14,7 @@ from models import FoodCategory, GoalCalculationResult
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = "gemini-2.0-flash-lite"
 
 MEAL_PROMPT = ChatPromptTemplate.from_messages([
     (
