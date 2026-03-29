@@ -162,6 +162,73 @@ export async function chat(
   return data.response;
 }
 
+export interface Workout {
+  id: number;
+  user_id: string;
+  workout_type: string;
+  duration_minutes: number;
+  calories_burned: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface FitnessStats {
+  date: string;
+  total_calories_burned: number;
+  workout_count: number;
+  total_duration_minutes: number;
+  breakdown: Record<string, number>;
+}
+
+export async function getWorkouts(since?: string): Promise<Workout[]> {
+  const params = since ? `?since=${since}` : "";
+  const res = await fetch(`${API_URL}/workouts${params}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener entrenamientos");
+  return res.json();
+}
+
+export async function createWorkout(data: {
+  workout_type: string;
+  duration_minutes: number;
+  calories_burned: number;
+  notes?: string;
+}): Promise<Workout> {
+  const res = await fetch(`${API_URL}/workouts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al registrar entrenamiento");
+  return res.json();
+}
+
+export async function deleteWorkout(id: number): Promise<void> {
+  const res = await fetch(`${API_URL}/workouts/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al eliminar entrenamiento");
+}
+
+export async function getFitnessDaily(date?: string): Promise<FitnessStats> {
+  const params = date ? `?target_date=${date}` : "";
+  const res = await fetch(`${API_URL}/stats/fitness/daily${params}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener stats de fitness");
+  return res.json();
+}
+
+export async function getFitnessWeekly(): Promise<{ weekly_data: Record<string, number> }> {
+  const res = await fetch(`${API_URL}/stats/fitness/weekly`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener stats semanales de fitness");
+  return res.json();
+}
+
 export interface GoalResult {
   daily_calories_target: number;
   protein_g: number;

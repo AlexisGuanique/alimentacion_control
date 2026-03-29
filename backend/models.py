@@ -114,6 +114,53 @@ class GoalCalculationResult(SQLModel):
     recommendations: list[str]
 
 
+class WorkoutType(str, Enum):
+    CARDIO = "Cardio"
+    FUERZA = "Fuerza"
+    HIIT = "HIIT"
+    FLEXIBILIDAD = "Flexibilidad"
+    DEPORTE = "Deporte"
+    CAMINATA = "Caminata"
+    NATACION = "Natación"
+    CICLISMO = "Ciclismo"
+    OTRO = "Otro"
+
+
+class WorkoutSession(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    workout_type: WorkoutType
+    duration_minutes: int
+    calories_burned: float
+    notes: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class WorkoutCreate(SQLModel):
+    workout_type: WorkoutType
+    duration_minutes: int
+    calories_burned: float
+    notes: Optional[str] = None
+
+
+class WorkoutRead(SQLModel):
+    id: int
+    user_id: str
+    workout_type: WorkoutType
+    duration_minutes: int
+    calories_burned: float
+    notes: Optional[str]
+    created_at: datetime
+
+
+class FitnessStats(SQLModel):
+    date: str
+    total_calories_burned: float
+    workout_count: int
+    total_duration_minutes: int
+    breakdown: dict
+
+
 class MealBase(SQLModel):
     description: str
     calories: float

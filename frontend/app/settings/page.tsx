@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  User, Lock, Target, ArrowLeft, Save, Sparkles,
+  User, Lock, Target, Save, Sparkles,
   CheckCircle, AlertCircle, Loader2, Scale, Ruler,
   Activity, ChevronRight,
 } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   getMe, updateProfile, changePassword, calculateGoal,
   User as UserType, GoalResult,
 } from "@/lib/api";
+import AppLayout from "@/components/AppLayout";
 
 type Tab = "perfil" | "cuerpo" | "seguridad";
 
@@ -201,25 +202,20 @@ export default function SettingsPage() {
     { id: "seguridad", label: "Seguridad", icon: <Lock className="w-4 h-4" /> },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem("nutritrack_token");
+    router.push("/login");
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AppLayout userName={user?.full_name} userEmail={user?.email} onLogout={handleLogout}>
       {toast && <Toast message={toast.message} type={toast.type} />}
 
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-30">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-xl transition-all text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Dashboard
-          </button>
-          <h1 className="font-bold text-gray-900">Configuración</h1>
-        </div>
-      </header>
-
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Gestiona tu perfil y objetivos</p>
+        </div>
         {/* Tabs */}
         <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1.5 shadow-sm">
           {tabs.map((t) => (
@@ -510,6 +506,6 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
-    </div>
+    </AppLayout>
   );
 }

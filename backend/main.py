@@ -20,6 +20,7 @@ from auth import (
 from database import create_db_and_tables, get_session
 from models import (
     DailyStats,
+    FitnessStats,
     GoalCalculationRequest,
     GoalCalculationResult,
     Meal,
@@ -32,6 +33,9 @@ from models import (
     UserCreate,
     UserProfileUpdate,
     UserRead,
+    WorkoutCreate,
+    WorkoutRead,
+    WorkoutSession,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -299,6 +303,105 @@ def weekly_stats(
     for meal in meals:
         day = meal.created_at.date().isoformat()
         daily[day] = daily.get(day, 0) + meal.calories
+
+    return {"weekly_data": daily}
+
+
+# ─── Workouts ────────────────────────────────────────────────────────────────
+
+
+@app.get("/workouts", response_model=list[WorkoutRead])
+def list_workouts(
+    limit: int = 50,
+    offset: int = 0,
+    since: Optional[date] = None,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    query = select(WorkoutSession).where(WorkoutSession.user_id == current_user.id)
+    if since:
+        since_dt = datetime.combine(since, datetime.min.time())
+        query = query.where(col(WorkoutSession.created_at) >= since_dt)
+    query = query.order_by(col(WorkoutSession.created_at).desc()).offset(offset).limit(limit)
+    return session.exec(query).all()
+
+
+@app.post("/workouts", response_model=WorkoutRead, status_code=status.HTTP_201_CREATED)
+def create_workout(
+    workout_in: WorkoutCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    workout = WorkoutSession(**workout_in.model_dump(), user_id=current_user.id)
+    session.add(workout)
+    session.commit()
+    session.refresh(workout)
+    return workout
+
+
+@app.delete("/workouts/{workout_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_workout(
+    workout_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    workout = session.get(WorkoutSession, workout_id)
+    if not workout or workout.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Entrenamiento no encontrado.")
+    session.delete(workout)
+    session.commit()
+
+
+@app.get("/stats/fitness/daily", response_model=FitnessStats)
+def fitness_daily_stats(
+    target_date: Optional[date] = None,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    target = target_date or date.today()
+    start = datetime.combine(target, datetime.min.time())
+    end = start + timedelta(days=1)
+
+    workouts = session.exec(
+        select(WorkoutSession).where(
+            WorkoutSession.user_id == current_user.id,
+            col(WorkoutSession.created_at) >= start,
+            col(WorkoutSession.created_at) < end,
+        )
+    ).all()
+
+    total_calories = sum(w.calories_burned for w in workouts)
+    total_duration = sum(w.duration_minutes for w in workouts)
+    breakdown: dict[str, float] = {}
+    for w in workouts:
+        breakdown[w.workout_type] = breakdown.get(w.workout_type, 0) + w.calories_burned
+
+    return FitnessStats(
+        date=target.isoformat(),
+        total_calories_burned=total_calories,
+        workout_count=len(workouts),
+        total_duration_minutes=total_duration,
+        breakdown=breakdown,
+    )
+
+
+@app.get("/stats/fitness/weekly")
+def fitness_weekly_stats(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    start = datetime.combine(date.today() - timedelta(days=6), datetime.min.time())
+    workouts = session.exec(
+        select(WorkoutSession).where(
+            WorkoutSession.user_id == current_user.id,
+            col(WorkoutSession.created_at) >= start,
+        )
+    ).all()
+
+    daily: dict[str, float] = {}
+    for w in workouts:
+        day = w.created_at.date().isoformat()
+        daily[day] = daily.get(day, 0) + w.calories_burned
 
     return {"weekly_data": daily}
 
