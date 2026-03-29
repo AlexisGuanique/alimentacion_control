@@ -173,7 +173,7 @@ export default function WorkoutList({ workouts, onDelete }: Props) {
       {confirmId !== null && (
         <ConfirmModal
           title="Eliminar entrenamiento"
-          message="¿Estás seguro de que querés eliminar este entrenamiento? Esta acción no se puede deshacer."
+          description="¿Estás seguro de que querés eliminar este entrenamiento? Esta acción no se puede deshacer."
           confirmLabel="Eliminar"
           onConfirm={handleDelete}
           onCancel={() => setConfirmId(null)}
