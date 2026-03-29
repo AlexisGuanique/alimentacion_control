@@ -6,6 +6,34 @@ import { deleteWorkout, Workout } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import ConfirmModal from "./ConfirmModal";
 
+function WorkoutDetails({ details_json }: { details_json: string | null }) {
+  if (!details_json) return null;
+  try {
+    const d = JSON.parse(details_json);
+    if (d.exercises?.length) {
+      return (
+        <div className="mt-2 space-y-1">
+          {d.exercises.map((ex: { name: string; sets: number; reps: number; weight_kg: number }, i: number) => (
+            ex.name && (
+              <div key={i} className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="font-medium text-gray-700">{ex.name}</span>
+                <span className="text-gray-400">·</span>
+                <span>{ex.sets}×{ex.reps}</span>
+                {ex.weight_kg > 0 && <><span className="text-gray-400">·</span><span>{ex.weight_kg}kg</span></>}
+              </div>
+            )
+          ))}
+        </div>
+      );
+    }
+    if (d.distance_km) return <p className="text-xs text-gray-500 mt-1">{d.distance_km} km</p>;
+    if (d.distance_m) return <p className="text-xs text-gray-500 mt-1">{d.distance_m}m — {d.style || ""}</p>;
+    if (d.rounds) return <p className="text-xs text-gray-500 mt-1">{d.rounds} rondas · {d.work_seconds}s trabajo / {d.rest_seconds}s descanso</p>;
+    if (d.sport) return <p className="text-xs text-gray-500 mt-1">{d.sport}</p>;
+  } catch { /* ignore */ }
+  return null;
+}
+
 const TYPE_STYLES: Record<string, string> = {
   Cardio: "bg-orange-100 text-orange-700",
   Fuerza: "bg-blue-100 text-blue-700",
@@ -77,6 +105,7 @@ export default function WorkoutList({ workouts, onDelete }: Props) {
                 <span>{w.calories_burned.toFixed(0)} kcal</span>
               </div>
             </div>
+            <WorkoutDetails details_json={w.details_json} />
             {w.notes && (
               <div className="flex items-start gap-1.5 mt-2 text-xs text-gray-500">
                 <FileText className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-400" />
@@ -121,7 +150,11 @@ export default function WorkoutList({ workouts, onDelete }: Props) {
                     {w.calories_burned.toFixed(0)} kcal
                   </div>
                 </td>
-                <td className="px-5 py-3.5 text-gray-500 max-w-xs truncate">{w.notes || "—"}</td>
+                <td className="px-5 py-3.5 text-gray-500 max-w-xs">
+                  <WorkoutDetails details_json={w.details_json} />
+                  {w.notes && <p className="text-xs truncate mt-0.5">{w.notes}</p>}
+                  {!w.details_json && !w.notes && "—"}
+                </td>
                 <td className="px-5 py-3.5 text-gray-400 text-xs whitespace-nowrap">{formatDate(w.created_at)}</td>
                 <td className="px-5 py-3.5">
                   <button

@@ -89,11 +89,12 @@ export async function getMe(): Promise<User> {
   return res.json();
 }
 
-export async function getMeals(since?: string): Promise<Meal[]> {
-  const params = since ? `?since=${since}` : "";
-  const res = await fetch(`${API_URL}/meals${params}`, {
-    headers: authHeaders(),
-  });
+export async function getMeals(since?: string, until?: string): Promise<Meal[]> {
+  const p = new URLSearchParams();
+  if (since) p.set("since", since);
+  if (until) p.set("until", until);
+  const qs = p.toString() ? `?${p}` : "";
+  const res = await fetch(`${API_URL}/meals${qs}`, { headers: authHeaders() });
   if (!res.ok) throw new Error("Error al obtener comidas");
   return res.json();
 }
@@ -169,6 +170,7 @@ export interface Workout {
   duration_minutes: number;
   calories_burned: number;
   notes: string | null;
+  details_json: string | null;
   created_at: string;
 }
 
@@ -180,11 +182,12 @@ export interface FitnessStats {
   breakdown: Record<string, number>;
 }
 
-export async function getWorkouts(since?: string): Promise<Workout[]> {
-  const params = since ? `?since=${since}` : "";
-  const res = await fetch(`${API_URL}/workouts${params}`, {
-    headers: authHeaders(),
-  });
+export async function getWorkouts(since?: string, until?: string): Promise<Workout[]> {
+  const p = new URLSearchParams();
+  if (since) p.set("since", since);
+  if (until) p.set("until", until);
+  const qs = p.toString() ? `?${p}` : "";
+  const res = await fetch(`${API_URL}/workouts${qs}`, { headers: authHeaders() });
   if (!res.ok) throw new Error("Error al obtener entrenamientos");
   return res.json();
 }
@@ -194,6 +197,7 @@ export async function createWorkout(data: {
   duration_minutes: number;
   calories_burned: number;
   notes?: string;
+  details_json?: string;
 }): Promise<Workout> {
   const res = await fetch(`${API_URL}/workouts`, {
     method: "POST",

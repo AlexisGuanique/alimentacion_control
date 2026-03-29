@@ -9,7 +9,7 @@ import {
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Nutrición", href: "/dashboard", icon: Apple },
+  { label: "Nutrición", href: "/nutrition", icon: Apple },
   { label: "Ejercicios", href: "/workouts", icon: Dumbbell },
   { label: "Configuración", href: "/settings", icon: Settings },
 ];

@@ -133,6 +133,7 @@ class WorkoutSession(SQLModel, table=True):
     duration_minutes: int
     calories_burned: float
     notes: Optional[str] = Field(default=None)
+    details_json: Optional[str] = Field(default=None)  # JSON string con datos específicos del deporte
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -141,6 +142,7 @@ class WorkoutCreate(SQLModel):
     duration_minutes: int
     calories_burned: float
     notes: Optional[str] = None
+    details_json: Optional[str] = None
 
 
 class WorkoutRead(SQLModel):
@@ -150,6 +152,7 @@ class WorkoutRead(SQLModel):
     duration_minutes: int
     calories_burned: float
     notes: Optional[str]
+    details_json: Optional[str]
     created_at: datetime
 
 

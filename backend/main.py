@@ -185,6 +185,7 @@ def list_meals(
     limit: int = 50,
     offset: int = 0,
     since: Optional[date] = None,
+    until: Optional[date] = None,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
@@ -192,6 +193,9 @@ def list_meals(
     if since:
         since_dt = datetime.combine(since, datetime.min.time())
         query = query.where(col(Meal.created_at) >= since_dt)
+    if until:
+        until_dt = datetime.combine(until + timedelta(days=1), datetime.min.time())
+        query = query.where(col(Meal.created_at) < until_dt)
     query = query.order_by(col(Meal.created_at).desc()).offset(offset).limit(limit)
     return session.exec(query).all()
 
@@ -315,6 +319,7 @@ def list_workouts(
     limit: int = 50,
     offset: int = 0,
     since: Optional[date] = None,
+    until: Optional[date] = None,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
@@ -322,6 +327,9 @@ def list_workouts(
     if since:
         since_dt = datetime.combine(since, datetime.min.time())
         query = query.where(col(WorkoutSession.created_at) >= since_dt)
+    if until:
+        until_dt = datetime.combine(until + timedelta(days=1), datetime.min.time())
+        query = query.where(col(WorkoutSession.created_at) < until_dt)
     query = query.order_by(col(WorkoutSession.created_at).desc()).offset(offset).limit(limit)
     return session.exec(query).all()
 
@@ -333,6 +341,37 @@ def create_workout(
     session: Session = Depends(get_session),
 ):
     workout = WorkoutSession(**workout_in.model_dump(), user_id=current_user.id)
+    session.add(workout)
+    session.commit()
+    session.refresh(workout)
+    return workout
+
+
+@app.post("/workouts/ai", response_model=WorkoutRead, status_code=status.HTTP_201_CREATED)
+async def create_workout_ai(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    import json as _json
+    body = await request.json()
+    raw_text = body.get("text", "")
+    if not raw_text:
+        raise HTTPException(status_code=400, detail="El campo 'text' es requerido.")
+
+    weight = current_user.weight_kg or 75.0
+    result = await nutritionist_ai.analyze_workout(raw_text, weight_kg=weight)
+    if not result:
+        raise HTTPException(status_code=422, detail="No se pudo analizar el entrenamiento.")
+
+    workout = WorkoutSession(
+        user_id=current_user.id,
+        workout_type=result.get("workout_type", "Otro"),
+        duration_minutes=result.get("duration_minutes", 0),
+        calories_burned=result.get("calories_burned", 0),
+        notes=result.get("notes"),
+        details_json=_json.dumps(result.get("details", {}), ensure_ascii=False),
+    )
     session.add(workout)
     session.commit()
     session.refresh(workout)

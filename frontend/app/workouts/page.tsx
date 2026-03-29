@@ -17,23 +17,24 @@ import {
 import AppLayout from "@/components/AppLayout";
 import WorkoutList from "@/components/WorkoutList";
 import AddWorkoutModal from "@/components/AddWorkoutModal";
+import DateNav from "@/components/DateNav";
 
 export default function WorkoutsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [stats, setStats] = useState<FitnessStats | null>(null);
-  const [weeklyData, setWeeklyData] = useState<{ day: string; calories: number }[]>([]);
+  const [weeklyData, setWeeklyData] = useState<{ day: string; calories: number; date: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (targetDate: string) => {
     try {
-      const today = new Date().toISOString().split("T")[0];
       const [userData, workoutsData, statsData, weeklyRaw] = await Promise.all([
         getMe(),
-        getWorkouts(today),
-        getFitnessDaily(),
+        getWorkouts(targetDate, targetDate),
+        getFitnessDaily(targetDate),
         getFitnessWeekly(),
       ]);
 
@@ -44,6 +45,7 @@ export default function WorkoutsPage() {
       const formatted = Object.entries(weeklyRaw.weekly_data)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([date, calories]) => ({
+          date,
           day: new Date(date + "T12:00:00").toLocaleDateString("es-AR", { weekday: "short" }),
           calories,
         }));
@@ -59,8 +61,8 @@ export default function WorkoutsPage() {
   useEffect(() => {
     const token = localStorage.getItem("nutritrack_token");
     if (!token) { router.push("/login"); return; }
-    fetchData();
-  }, [fetchData, router]);
+    fetchData(selectedDate);
+  }, [fetchData, selectedDate, router]);
 
   const handleLogout = () => {
     localStorage.removeItem("nutritrack_token");
@@ -108,20 +110,17 @@ export default function WorkoutsPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Actividad Física</h1>
-            <p className="text-gray-500 text-sm flex items-center gap-1.5 mt-0.5">
-              <Calendar className="w-4 h-4" />
-              {new Date().toLocaleDateString("es-AR", {
-                weekday: "long", day: "numeric", month: "long",
-              })}
-            </p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Registrar Ejercicio
-          </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <DateNav date={selectedDate} onChange={(d) => { setSelectedDate(d); setLoading(true); }} />
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-all shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Registrar Ejercicio
+            </button>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -189,11 +188,11 @@ export default function WorkoutsPage() {
                   formatter={(v: number) => [`${v.toFixed(0)} kcal`, "Quemadas"]}
                   contentStyle={{ borderRadius: "12px", border: "1px solid #f0f0f0", fontSize: 12 }}
                 />
-                <Bar dataKey="calories" radius={[6, 6, 0, 0]}>
-                  {weeklyData.map((_, i) => (
+                  <Bar dataKey="calories" radius={[6, 6, 0, 0]}>
+                  {weeklyData.map((entry, i) => (
                     <Cell
                       key={i}
-                      fill={i === weeklyData.length - 1 ? "#2563eb" : "#bfdbfe"}
+                      fill={entry.date === selectedDate ? "#2563eb" : "#bfdbfe"}
                     />
                   ))}
                 </Bar>
@@ -216,7 +215,7 @@ export default function WorkoutsPage() {
         <AddWorkoutModal
           userWeightKg={user?.weight_kg}
           onClose={() => setShowModal(false)}
-          onAdded={() => { fetchData(); setShowModal(false); }}
+          onAdded={() => { fetchData(selectedDate); setShowModal(false); }}
         />
       )}
     </AppLayout>

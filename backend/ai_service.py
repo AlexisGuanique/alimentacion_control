@@ -85,6 +85,37 @@ Calcula su plan nutricional personalizado.""",
 ])
 
 
+WORKOUT_PROMPT = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """Eres un entrenador personal experto. Analiza la descripción de ejercicio del usuario y devuelve datos estructurados.
+
+Devuelve EXCLUSIVAMENTE un JSON válido con esta estructura (sin texto adicional, sin markdown):
+{{
+  "workout_type": "Fuerza",
+  "duration_minutes": 60,
+  "calories_burned": 320.0,
+  "notes": "Descripción resumida del entrenamiento",
+  "details": {{}}
+}}
+
+Tipos válidos: Cardio, Fuerza, HIIT, Flexibilidad, Deporte, Caminata, Natación, Ciclismo, Otro
+
+Para el campo "details" usa la estructura apropiada según el tipo:
+- Fuerza: {{"exercises": [{{"name": "Sentadillas", "sets": 4, "reps": 10, "weight_kg": 80}}]}}
+- Cardio/Caminata/Ciclismo: {{"distance_km": 10.0, "pace": "5:30 min/km"}}
+- Natación: {{"distance_m": 2000, "style": "Libre", "pace": "2:15 min/100m"}}
+- HIIT: {{"rounds": 8, "work_seconds": 40, "rest_seconds": 20, "exercises": ["Burpees", "Saltos"]}}
+- Deporte: {{"sport": "Fútbol", "description": "Partido de 90 minutos"}}
+- Otros: {{}}
+
+Para estimar calorías usa MET × peso_kg × horas. Peso del usuario: {weight_kg} kg.
+Si no se especifica duración, estímala según la descripción.""",
+    ),
+    ("human", "Descripción del entrenamiento: {texto}"),
+])
+
+
 def _is_configured() -> bool:
     return bool(os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
 
@@ -96,15 +127,18 @@ class NutritionistAI:
             self.meal_chain = None
             self.chat_chain = None
             self.goal_chain = None
+            self.workout_chain = None
             return
 
         meal_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.2)
         chat_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.7)
         goal_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.3)
+        workout_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.2)
 
         self.meal_chain = MEAL_PROMPT | meal_model
         self.chat_chain = CHAT_PROMPT | chat_model
         self.goal_chain = GOAL_PROMPT | goal_model
+        self.workout_chain = WORKOUT_PROMPT | workout_model
 
     def _extract_text(self, content) -> str:
         if isinstance(content, str):
@@ -192,6 +226,25 @@ class NutritionistAI:
             return GoalCalculationResult(**data)
         except Exception as exc:
             logger.error("Error en calculate_goal: %s", exc)
+            return None
+
+
+    async def analyze_workout(self, text: str, weight_kg: float = 75.0) -> Optional[dict]:
+        if not self.workout_chain:
+            return None
+        try:
+            response = await self.workout_chain.ainvoke({
+                "texto": text,
+                "weight_kg": weight_kg,
+            })
+            raw = self._extract_text(response.content)
+            cleaned = re.sub(r"```(?:json)?|```", "", raw).strip()
+            data = json.loads(cleaned)
+            data["calories_burned"] = float(data.get("calories_burned", 0))
+            data["duration_minutes"] = int(data.get("duration_minutes", 0))
+            return data
+        except Exception as exc:
+            logger.error("Error en analyze_workout: %s", exc)
             return None
 
 
