@@ -6,6 +6,7 @@ import { deleteWorkout, Workout } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import ConfirmModal from "./ConfirmModal";
 import EditWorkoutModal from "./EditWorkoutModal";
+import WorkoutDetailModal from "./WorkoutDetailModal";
 
 function WorkoutDetails({ details_json }: { details_json: string | null }) {
   if (!details_json) return null;
@@ -57,6 +58,7 @@ interface Props {
 export default function WorkoutList({ workouts, onDelete, onUpdate, userWeightKg }: Props) {
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [editWorkout, setEditWorkout] = useState<Workout | null>(null);
+  const [detailWorkout, setDetailWorkout] = useState<Workout | null>(null);
 
   const handleDelete = async () => {
     if (confirmId === null) return;
@@ -84,6 +86,14 @@ export default function WorkoutList({ workouts, onDelete, onUpdate, userWeightKg
 
   return (
     <>
+      {detailWorkout && (
+        <WorkoutDetailModal
+          workout={detailWorkout}
+          onClose={() => setDetailWorkout(null)}
+          onDelete={(id) => { setDetailWorkout(null); setConfirmId(id); }}
+          onEdit={(w) => { setDetailWorkout(null); setEditWorkout(w); }}
+        />
+      )}
       {editWorkout && (
         <EditWorkoutModal
           workout={editWorkout}
@@ -96,12 +106,12 @@ export default function WorkoutList({ workouts, onDelete, onUpdate, userWeightKg
       {/* Cards — mobile & tablet */}
       <div className="lg:hidden space-y-3">
         {workouts.map((w) => (
-          <div key={w.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div key={w.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setDetailWorkout(w)}>
             <div className="flex items-start justify-between mb-3">
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${TYPE_STYLES[w.workout_type] || "bg-gray-100 text-gray-700"}`}>
                 {w.workout_type}
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setEditWorkout(w)}
                   className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
@@ -153,7 +163,7 @@ export default function WorkoutList({ workouts, onDelete, onUpdate, userWeightKg
           </thead>
           <tbody className="divide-y divide-gray-50">
             {workouts.map((w) => (
-              <tr key={w.id} className="hover:bg-gray-50/50 transition-colors">
+              <tr key={w.id} className="hover:bg-gray-50/50 transition-colors cursor-pointer group" onClick={() => setDetailWorkout(w)}>
                 <td className="px-5 py-3.5">
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${TYPE_STYLES[w.workout_type] || "bg-gray-100 text-gray-700"}`}>
                     {w.workout_type}
@@ -177,8 +187,8 @@ export default function WorkoutList({ workouts, onDelete, onUpdate, userWeightKg
                   {!w.details_json && !w.notes && "—"}
                 </td>
                 <td className="px-5 py-3.5 text-gray-400 text-xs whitespace-nowrap">{formatDate(w.created_at)}</td>
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-1">
+                <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button
                       onClick={() => setEditWorkout(w)}
                       className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"

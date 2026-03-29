@@ -81,13 +81,17 @@ export default function MealTable({ meals, onDelete, onUpdate }: MealTableProps)
         meal={detailMeal}
         onClose={() => setDetailMeal(null)}
         onDelete={(id) => { setDetailMeal(null); setConfirmId(id); }}
+        onEdit={(meal) => { setDetailMeal(null); setEditMeal(meal); }}
       />
     )}
     {editMeal && (
       <EditMealModal
         meal={editMeal}
         onClose={() => setEditMeal(null)}
-        onUpdated={(updated) => { onUpdate?.(updated); setEditMeal(null); }}
+        onUpdated={(updated) => {
+          onUpdate?.(updated);
+          setEditMeal(null);
+        }}
       />
     )}
     {confirmId !== null && (

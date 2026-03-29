@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Flame, Tag, Clock, Zap, Trash2 } from "lucide-react";
+import { X, Flame, Tag, Clock, Zap, Trash2, Pencil } from "lucide-react";
 import { Meal } from "@/lib/api";
 import { CATEGORY_COLORS, SOURCE_ICONS, formatDate } from "@/lib/utils";
 
@@ -8,6 +8,7 @@ interface MealDetailModalProps {
   meal: Meal;
   onClose: () => void;
   onDelete: (id: number) => void;
+  onEdit?: (meal: Meal) => void;
 }
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -22,7 +23,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
   Otro: "🍽️",
 };
 
-export default function MealDetailModal({ meal, onClose, onDelete }: MealDetailModalProps) {
+export default function MealDetailModal({ meal, onClose, onDelete, onEdit }: MealDetailModalProps) {
   return (
     <div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -114,15 +115,20 @@ export default function MealDetailModal({ meal, onClose, onDelete }: MealDetailM
           >
             Cerrar
           </button>
+          {onEdit && (
+            <button
+              onClick={() => { onEdit(meal); onClose(); }}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all"
+            >
+              <Pencil className="w-4 h-4" />
+              Editar
+            </button>
+          )}
           <button
-            onClick={() => {
-              onDelete(meal.id);
-              onClose();
-            }}
+            onClick={() => { onDelete(meal.id); onClose(); }}
             className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all"
           >
             <Trash2 className="w-4 h-4" />
-            Eliminar
           </button>
         </div>
       </div>
