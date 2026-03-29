@@ -191,12 +191,12 @@ export default function NutritionPage() {
         </div>
       </div>
 
-      <ChatWidget onDataChanged={fetchData} />
+      <ChatWidget onDataChanged={() => fetchData(selectedDate)} />
 
       {showModal && (
         <AddMealModal
           onClose={() => setShowModal(false)}
-          onAdded={() => { fetchData(); setShowModal(false); }}
+          onAdded={() => { fetchData(selectedDate); setShowModal(false); }}
         />
       )}
     </AppLayout>
