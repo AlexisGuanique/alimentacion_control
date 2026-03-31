@@ -335,6 +335,53 @@ def weekly_stats(
     return {"weekly_data": daily}
 
 
+@app.get("/stats/monthly")
+def monthly_nutrition_stats(
+    year: int,
+    month: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    import calendar as cal_module
+    first_day = date(year, month, 1)
+    last_day = date(year, month, cal_module.monthrange(year, month)[1])
+    start = datetime.combine(first_day, datetime.min.time())
+    end = datetime.combine(last_day + timedelta(days=1), datetime.min.time())
+
+    meals = session.exec(
+        select(Meal).where(
+            Meal.user_id == current_user.id,
+            col(Meal.created_at) >= start,
+            col(Meal.created_at) < end,
+        )
+    ).all()
+
+    daily: dict[str, dict] = {}
+    category_totals: dict[str, float] = {}
+    for meal in meals:
+        day = meal.created_at.date().isoformat()
+        if day not in daily:
+            daily[day] = {"date": day, "calories": 0.0, "meal_count": 0}
+        daily[day]["calories"] += meal.calories
+        daily[day]["meal_count"] += 1
+        category_totals[meal.category] = category_totals.get(meal.category, 0) + meal.calories
+
+    total_calories = sum(d["calories"] for d in daily.values())
+    total_meals = sum(d["meal_count"] for d in daily.values())
+    days_with_data = len(daily)
+
+    return {
+        "year": year,
+        "month": month,
+        "total_calories": total_calories,
+        "total_meals": total_meals,
+        "days_with_data": days_with_data,
+        "avg_daily_calories": total_calories / days_with_data if days_with_data else 0,
+        "category_breakdown": category_totals,
+        "daily_data": sorted(daily.values(), key=lambda x: x["date"]),
+    }
+
+
 # ─── Workouts ────────────────────────────────────────────────────────────────
 
 
@@ -465,6 +512,56 @@ def fitness_daily_stats(
         total_duration_minutes=total_duration,
         breakdown=breakdown,
     )
+
+
+@app.get("/stats/fitness/monthly")
+def monthly_fitness_stats(
+    year: int,
+    month: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    import calendar as cal_module
+    first_day = date(year, month, 1)
+    last_day = date(year, month, cal_module.monthrange(year, month)[1])
+    start = datetime.combine(first_day, datetime.min.time())
+    end = datetime.combine(last_day + timedelta(days=1), datetime.min.time())
+
+    workouts = session.exec(
+        select(WorkoutSession).where(
+            WorkoutSession.user_id == current_user.id,
+            col(WorkoutSession.created_at) >= start,
+            col(WorkoutSession.created_at) < end,
+        )
+    ).all()
+
+    daily: dict[str, dict] = {}
+    type_totals: dict[str, float] = {}
+    for w in workouts:
+        day = w.created_at.date().isoformat()
+        if day not in daily:
+            daily[day] = {"date": day, "calories_burned": 0.0, "workout_count": 0, "duration_minutes": 0}
+        daily[day]["calories_burned"] += w.calories_burned
+        daily[day]["workout_count"] += 1
+        daily[day]["duration_minutes"] += w.duration_minutes
+        type_totals[w.workout_type] = type_totals.get(w.workout_type, 0) + w.calories_burned
+
+    total_calories = sum(d["calories_burned"] for d in daily.values())
+    total_workouts = sum(d["workout_count"] for d in daily.values())
+    total_duration = sum(d["duration_minutes"] for d in daily.values())
+    days_active = len(daily)
+
+    return {
+        "year": year,
+        "month": month,
+        "total_calories_burned": total_calories,
+        "total_workouts": total_workouts,
+        "total_duration_minutes": total_duration,
+        "days_active": days_active,
+        "avg_daily_calories_burned": total_calories / days_active if days_active else 0,
+        "type_breakdown": type_totals,
+        "daily_data": sorted(daily.values(), key=lambda x: x["date"]),
+    }
 
 
 @app.get("/stats/fitness/weekly")

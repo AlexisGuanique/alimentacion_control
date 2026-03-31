@@ -253,6 +253,45 @@ export async function getFitnessWeekly(): Promise<{ weekly_data: Record<string, 
   return res.json();
 }
 
+export interface MonthlyNutritionStats {
+  year: number;
+  month: number;
+  total_calories: number;
+  total_meals: number;
+  days_with_data: number;
+  avg_daily_calories: number;
+  category_breakdown: Record<string, number>;
+  daily_data: { date: string; calories: number; meal_count: number }[];
+}
+
+export interface MonthlyFitnessStats {
+  year: number;
+  month: number;
+  total_calories_burned: number;
+  total_workouts: number;
+  total_duration_minutes: number;
+  days_active: number;
+  avg_daily_calories_burned: number;
+  type_breakdown: Record<string, number>;
+  daily_data: { date: string; calories_burned: number; workout_count: number; duration_minutes: number }[];
+}
+
+export async function getMonthlyNutritionStats(year: number, month: number): Promise<MonthlyNutritionStats> {
+  const res = await fetch(`${API_URL}/stats/monthly?year=${year}&month=${month}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener stats mensuales de nutrición");
+  return res.json();
+}
+
+export async function getMonthlyFitnessStats(year: number, month: number): Promise<MonthlyFitnessStats> {
+  const res = await fetch(`${API_URL}/stats/fitness/monthly?year=${year}&month=${month}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener stats mensuales de fitness");
+  return res.json();
+}
+
 export interface GoalResult {
   daily_calories_target: number;
   protein_g: number;
