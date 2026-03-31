@@ -22,7 +22,7 @@ import {
 } from "@/lib/api";
 import { CATEGORY_COLORS } from "@/lib/utils";
 import AppLayout from "@/components/AppLayout";
-import PeriodNav, { PeriodMode } from "@/components/PeriodNav";
+import PeriodNav, { PeriodMode, getMondayOf, getSundayOf } from "@/components/PeriodNav";
 
 function todayYM() {
   const d = new Date();
@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<PeriodMode>("day");
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [selectedWeek, setSelectedWeek] = useState(() => getMondayOf(new Date().toISOString().split("T")[0]));
   const [selectedMonth, setSelectedMonth] = useState(todayYM);
 
   const fetchDayData = useCallback(async (targetDate: string) => {
@@ -96,10 +97,68 @@ export default function DashboardPage() {
     setWeeklyFitness([]);
   }, []);
 
+  const fetchWeekData = useCallback(async (monday: string) => {
+    const sunday = getSundayOf(monday);
+    const [userData, nutMeals, fitWorkouts, weightData] = await Promise.all([
+      getMe(),
+      getMeals(monday, sunday),
+      getFitnessWeekly(), // reutilizamos weekly como base visual
+      getWeightHistory(6),
+    ]);
+    setUser(userData);
+    setWeightHistory(weightData);
+    setStats(null); setFitnessStats(null);
+    setMonthlyNutrition(null); setMonthlyFitness(null);
+
+    // Construir chart de los 7 días de la semana seleccionada
+    const nutByDay: Record<string, number> = {};
+    for (const m of nutMeals) { const d = m.created_at.split("T")[0]; nutByDay[d] = (nutByDay[d] || 0) + m.calories; }
+    const fitByDay = fitWorkouts.weekly_data; // últimos 7 días (puede no coincidir exactamente, pero sirve para referencia)
+
+    const weekNut: { day: string; calories: number; date: string }[] = [];
+    const weekFit: { day: string; calories: number; date: string }[] = [];
+    const mon = new Date(monday + "T12:00:00");
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(mon); d.setDate(d.getDate() + i);
+      const iso = d.toISOString().split("T")[0];
+      const label = d.toLocaleDateString("es-AR", { weekday: "short" });
+      weekNut.push({ day: label, calories: nutByDay[iso] || 0, date: iso });
+      weekFit.push({ day: label, calories: fitByDay[iso] || 0, date: iso });
+    }
+    setWeeklyNutrition(weekNut);
+    setWeeklyFitness(weekFit);
+
+    // KPIs de semana reutilizando estructura monthly
+    const totalNutCal = nutMeals.reduce((s, m) => s + m.calories, 0);
+    const daysNut = new Set(nutMeals.map((m) => m.created_at.split("T")[0])).size;
+    const totalFitCal = weekNut.reduce((s, d) => s + (fitByDay[d.date] || 0), 0);
+
+    setMonthlyNutrition({
+      year: 0, month: 0,
+      total_calories: totalNutCal,
+      total_meals: nutMeals.length,
+      days_with_data: daysNut,
+      avg_daily_calories: daysNut ? totalNutCal / daysNut : 0,
+      category_breakdown: {},
+      daily_data: [],
+    });
+    setMonthlyFitness({
+      year: 0, month: 0,
+      total_calories_burned: totalFitCal,
+      total_workouts: 0,
+      total_duration_minutes: 0,
+      days_active: weekFit.filter((d) => d.calories > 0).length,
+      avg_daily_calories_burned: 0,
+      type_breakdown: {},
+      daily_data: [],
+    });
+  }, []);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       if (mode === "day") await fetchDayData(selectedDate);
+      else if (mode === "week") await fetchWeekData(selectedWeek);
       else await fetchMonthData(selectedMonth);
     } catch {
       localStorage.removeItem("nutritrack_token");
@@ -174,7 +233,8 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               {mode === "day" && selectedDate === new Date().toISOString().split("T")[0]
                 ? `Buen día, ${user?.full_name?.split(" ")[0]} 👋`
-                : "Resumen"}
+                : mode === "week" ? "Resumen semanal"
+                : "Resumen mensual"}
             </h1>
             {user?.fitness_goal && (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2.5 py-0.5 rounded-full mt-1">
@@ -187,6 +247,8 @@ export default function DashboardPage() {
             onModeChange={setMode}
             date={selectedDate}
             onDateChange={setSelectedDate}
+            week={selectedWeek}
+            onWeekChange={setSelectedWeek}
             month={selectedMonth}
             onMonthChange={setSelectedMonth}
           />
@@ -319,6 +381,63 @@ export default function DashboardPage() {
                       <Tooltip formatter={(v: number) => [`${v.toFixed(0)} kcal`, "Quemadas"]} contentStyle={{ borderRadius: "12px", border: "1px solid #f0f0f0", fontSize: 11 }} />
                       <Bar dataKey="calories" radius={[5, 5, 0, 0]}>
                         {weeklyFitness.map((entry, i) => (<Cell key={i} fill={entry.date === selectedDate ? "#2563eb" : "#bfdbfe"} />))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════ VISTA SEMANAL ═══════════════ */}
+        {mode === "week" && (
+          <>
+            {/* Balance semana */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { label: "Kcal consumidas", value: `${(monthlyNutrition?.total_calories || 0).toFixed(0)}`, sub: "esta semana", icon: Flame, color: "text-orange-500", bg: "bg-orange-50" },
+                { label: "Comidas", value: monthlyNutrition?.total_meals || 0, sub: "registradas", icon: Apple, color: "text-green-500", bg: "bg-green-50" },
+                { label: "Prom. diario", value: `${(monthlyNutrition?.avg_daily_calories || 0).toFixed(0)} kcal`, sub: `meta ${dailyGoal.toFixed(0)} kcal`, icon: Target, color: "text-blue-500", bg: "bg-blue-50" },
+                { label: "Días con registro", value: monthlyNutrition?.days_with_data || 0, sub: "de 7 días", icon: CalendarDays, color: "text-purple-500", bg: "bg-purple-50" },
+              ].map(({ label, value, sub, icon: Icon, color, bg }) => (
+                <div key={label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                  <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center mb-3`}><Icon className={`w-5 h-5 ${color}`} /></div>
+                  <p className="text-2xl font-bold text-gray-900">{value}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid lg:grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" />Nutrición — semana</h3>
+                {weeklyNutrition.length === 0 ? <p className="text-sm text-gray-400 text-center py-10">Sin datos</p> : (
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={weeklyNutrition} barSize={32}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                      <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+                      <ReferenceLine y={dailyGoal} stroke="#f87171" strokeDasharray="4 3" label={{ value: "Meta", position: "right", fontSize: 10, fill: "#f87171" }} />
+                      <Tooltip formatter={(v: number) => [`${v.toFixed(0)} kcal`, "Ingeridas"]} contentStyle={{ borderRadius: "12px", border: "1px solid #f0f0f0", fontSize: 11 }} />
+                      <Bar dataKey="calories" radius={[5, 5, 0, 0]}>
+                        {weeklyNutrition.map((e, i) => (<Cell key={i} fill={e.calories > dailyGoal ? "#f87171" : e.calories > 0 ? "hsl(142.1 76.2% 36.3%)" : "#e5e7eb"} />))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+              <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-500" />Actividad — semana</h3>
+                {weeklyFitness.length === 0 ? <p className="text-sm text-gray-400 text-center py-10">Sin datos</p> : (
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={weeklyFitness} barSize={32}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                      <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+                      <Tooltip formatter={(v: number) => [`${v.toFixed(0)} kcal`, "Quemadas"]} contentStyle={{ borderRadius: "12px", border: "1px solid #f0f0f0", fontSize: 11 }} />
+                      <Bar dataKey="calories" radius={[5, 5, 0, 0]}>
+                        {weeklyFitness.map((e, i) => (<Cell key={i} fill={e.calories > 0 ? "#2563eb" : "#e5e7eb"} fillOpacity={e.calories > 0 ? 0.8 : 1} />))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
