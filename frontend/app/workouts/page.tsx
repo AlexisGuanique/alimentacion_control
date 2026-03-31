@@ -85,7 +85,7 @@ function WorkoutsByDay({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 overflow-hidden">
       {days.map((day) => {
         const dayWorkouts = grouped[day];
         const dayCalories = dayWorkouts.reduce((s, w) => s + w.calories_burned, 0);
@@ -96,17 +96,17 @@ function WorkoutsByDay({
           <div key={day} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
             {/* Header del día */}
             <button
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-gray-50 transition-colors"
               onClick={() => setOpenDays((p) => ({ ...p, [day]: !p[day] }))}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div className="w-2 h-2 rounded-full flex-shrink-0 bg-blue-500" />
-                <span className="text-sm font-semibold text-gray-800 capitalize">{formatDayHeader(day)}</span>
+                <span className="text-sm font-semibold text-gray-800 capitalize truncate">{formatDayHeader(day)}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-orange-500">{dayCalories.toFixed(0)} kcal</span>
-                <span className="text-xs text-gray-400">{dayMinutes} min · {dayWorkouts.length} sesión{dayWorkouts.length !== 1 ? "es" : ""}</span>
-                {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="text-sm font-bold text-orange-500 whitespace-nowrap">{dayCalories.toFixed(0)} kcal</span>
+                <span className="hidden sm:inline text-xs text-gray-400 whitespace-nowrap">{dayMinutes} min · {dayWorkouts.length} sesión{dayWorkouts.length !== 1 ? "es" : ""}</span>
+                {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
               </div>
             </button>
 
@@ -114,19 +114,19 @@ function WorkoutsByDay({
             {isOpen && (
               <div className="border-t border-gray-100 divide-y divide-gray-50">
                 {dayWorkouts.map((w) => (
-                  <div key={w.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 transition-colors group">
+                  <div key={w.id} className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50/50 transition-colors group">
                     <span className="text-xl flex-shrink-0">{TYPE_EMOJI[w.workout_type] || "💪"}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[w.workout_type] || "bg-gray-100 text-gray-700"}`}>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${TYPE_COLORS[w.workout_type] || "bg-gray-100 text-gray-700"}`}>
                           {w.workout_type}
                         </span>
-                        <span className="text-xs text-gray-400">{w.duration_minutes} min</span>
+                        <span className="text-xs text-gray-400 flex-shrink-0">{w.duration_minutes} min</span>
                       </div>
                       {w.notes && <p className="text-xs text-gray-500 mt-0.5 truncate">{w.notes}</p>}
                     </div>
-                    <span className="text-sm font-semibold text-orange-500 flex-shrink-0">{w.calories_burned.toFixed(0)} kcal</span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                    <span className="text-sm font-semibold text-orange-500 flex-shrink-0 whitespace-nowrap">{w.calories_burned.toFixed(0)} kcal</span>
+                    <div className="flex items-center gap-0.5 flex-shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
                       <button onClick={() => onEdit(w)} className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -137,9 +137,9 @@ function WorkoutsByDay({
                   </div>
                 ))}
                 {/* Resumen del día */}
-                <div className="px-4 py-2 bg-gray-50/50 flex justify-between text-xs text-gray-400">
-                  <span>{dayWorkouts.length} sesión{dayWorkouts.length !== 1 ? "es" : ""}</span>
-                  <span>{dayMinutes} min · {dayCalories.toFixed(0)} kcal quemadas</span>
+                <div className="px-4 py-2 bg-gray-50/50 flex justify-between text-xs text-gray-400 gap-2">
+                  <span className="flex-shrink-0">{dayWorkouts.length} sesión{dayWorkouts.length !== 1 ? "es" : ""}</span>
+                  <span className="flex-shrink-0">{dayMinutes} min · {dayCalories.toFixed(0)} kcal quemadas</span>
                 </div>
               </div>
             )}
