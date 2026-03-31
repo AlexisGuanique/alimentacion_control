@@ -3,19 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Flame, Apple, Target, TrendingUp, Award,
+  Flame, Apple, Target, TrendingUp,
   Activity, Sparkles, AlertCircle, Dumbbell, Timer,
-  ArrowDown, ArrowUp, Minus,
+  ArrowDown, ArrowUp, Minus, Scale, Plus,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
+  LineChart, Line, Dot,
 } from "recharts";
 
 import {
   getMeals, getDailyStats, getWeeklyStats, getMe,
-  getFitnessDaily, getFitnessWeekly,
-  DailyStats, FitnessStats, User,
+  getFitnessDaily, getFitnessWeekly, getWeightHistory,
+  DailyStats, FitnessStats, User, WeightEntry,
 } from "@/lib/api";
 import { CATEGORY_COLORS } from "@/lib/utils";
 import AppLayout from "@/components/AppLayout";
@@ -30,21 +31,24 @@ export default function DashboardPage() {
   const [weeklyFitness, setWeeklyFitness] = useState<{ day: string; calories: number; date: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
 
   const fetchData = useCallback(async (targetDate: string) => {
     try {
-      const [userData, , statsData, weeklyRaw, fitnessData, fitnessWeeklyRaw] = await Promise.all([
+      const [userData, , statsData, weeklyRaw, fitnessData, fitnessWeeklyRaw, weightData] = await Promise.all([
         getMe(),
         getMeals(targetDate, targetDate),
         getDailyStats(targetDate),
         getWeeklyStats(),
         getFitnessDaily(targetDate),
         getFitnessWeekly(),
+        getWeightHistory(6),
       ]);
 
       setUser(userData);
       setStats(statsData);
       setFitnessStats(fitnessData);
+      setWeightHistory(weightData);
 
       const toChartData = (raw: Record<string, number>) =>
         Object.entries(raw)
@@ -284,6 +288,61 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── Gráfico de evolución de peso ── */}
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <Scale className="w-4 h-4 text-primary" />
+              Evolución del peso
+            </h3>
+            <button
+              onClick={() => router.push("/settings?tab=peso")}
+              className="flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Registrar
+            </button>
+          </div>
+          {weightHistory.length < 2 ? (
+            <div className="text-center py-8 text-gray-400">
+              <Scale className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">Registrá al menos 2 pesajes para ver la evolución.</p>
+              <button onClick={() => router.push("/settings?tab=peso")} className="text-xs text-primary mt-2 hover:underline">
+                Ir a Seguimiento de peso →
+              </button>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={weightHistory.map((e) => ({
+                date: new Date(e.recorded_at + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
+                peso: e.weight_kg,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
+                  axisLine={false}
+                  tickLine={false}
+                  domain={["auto", "auto"]}
+                  tickFormatter={(v: number) => `${v}kg`}
+                />
+                <Tooltip
+                  formatter={(v: number) => [`${v} kg`, "Peso"]}
+                  contentStyle={{ borderRadius: "12px", border: "1px solid #f0f0f0", fontSize: 11 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="peso"
+                  stroke="hsl(142.1 76.2% 36.3%)"
+                  strokeWidth={2.5}
+                  dot={<Dot r={4} fill="hsl(142.1 76.2% 36.3%)" stroke="white" strokeWidth={2} />}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Gráficos semanales */}

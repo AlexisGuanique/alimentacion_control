@@ -287,6 +287,45 @@ export async function changePassword(
   }
 }
 
+export interface WeightEntry {
+  id: number;
+  user_id: string;
+  weight_kg: number;
+  notes: string | null;
+  recorded_at: string;
+  created_at: string;
+}
+
+export async function getWeightHistory(months = 12): Promise<WeightEntry[]> {
+  const res = await fetch(`${API_URL}/weight?months=${months}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al obtener historial de peso");
+  return res.json();
+}
+
+export async function logWeight(data: {
+  weight_kg: number;
+  notes?: string;
+  recorded_at?: string;
+}): Promise<WeightEntry> {
+  const res = await fetch(`${API_URL}/weight`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al registrar peso");
+  return res.json();
+}
+
+export async function deleteWeightEntry(id: number): Promise<void> {
+  const res = await fetch(`${API_URL}/weight/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al eliminar registro de peso");
+}
+
 export async function calculateGoal(data: {
   height_cm: number;
   weight_kg: number;

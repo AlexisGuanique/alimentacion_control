@@ -34,6 +34,9 @@ from models import (
     UserCreate,
     UserProfileUpdate,
     UserRead,
+    WeightEntry,
+    WeightEntryCreate,
+    WeightEntryRead,
     WorkoutCreate,
     WorkoutRead,
     WorkoutSession,
@@ -483,6 +486,58 @@ def fitness_weekly_stats(
         daily[day] = daily.get(day, 0) + w.calories_burned
 
     return {"weekly_data": daily}
+
+
+# ─── Weight tracking ─────────────────────────────────────────────────────────
+
+
+@app.post("/weight", response_model=WeightEntryRead, status_code=status.HTTP_201_CREATED)
+def log_weight(
+    entry_in: WeightEntryCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    entry = WeightEntry(
+        user_id=current_user.id,
+        weight_kg=entry_in.weight_kg,
+        notes=entry_in.notes,
+        recorded_at=entry_in.recorded_at or date.today(),
+    )
+    session.add(entry)
+    session.commit()
+    session.refresh(entry)
+    return entry
+
+
+@app.get("/weight", response_model=list[WeightEntryRead])
+def list_weight(
+    months: int = 12,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    since = date.today() - timedelta(days=months * 31)
+    entries = session.exec(
+        select(WeightEntry)
+        .where(
+            WeightEntry.user_id == current_user.id,
+            col(WeightEntry.recorded_at) >= since,
+        )
+        .order_by(col(WeightEntry.recorded_at).asc())
+    ).all()
+    return entries
+
+
+@app.delete("/weight/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_weight(
+    entry_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    entry = session.get(WeightEntry, entry_id)
+    if not entry or entry.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Registro de peso no encontrado.")
+    session.delete(entry)
+    session.commit()
 
 
 # ─── Chat ────────────────────────────────────────────────────────────────────

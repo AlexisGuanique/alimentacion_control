@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   User, Lock, Target, Save, Sparkles,
   CheckCircle, AlertCircle, Loader2, Scale, Ruler,
@@ -12,8 +12,9 @@ import {
   User as UserType, GoalResult,
 } from "@/lib/api";
 import AppLayout from "@/components/AppLayout";
+import WeightLog from "@/components/WeightLog";
 
-type Tab = "perfil" | "cuerpo" | "seguridad";
+type Tab = "perfil" | "cuerpo" | "peso" | "seguridad";
 
 const GOALS = [
   { value: "Pérdida de grasa", label: "Pérdida de grasa", emoji: "🔥", desc: "Reducir grasa corporal manteniendo músculo" },
@@ -42,9 +43,14 @@ function Toast({ message, type }: { message: string; type: "success" | "error" }
   );
 }
 
-export default function SettingsPage() {
+function SettingsContent() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("perfil");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = searchParams.get("tab");
+    if (t === "peso" || t === "cuerpo" || t === "seguridad") return t;
+    return "perfil";
+  });
   const [user, setUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -199,6 +205,7 @@ export default function SettingsPage() {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "perfil", label: "Perfil", icon: <User className="w-4 h-4" /> },
     { id: "cuerpo", label: "Cuerpo y Objetivo", icon: <Target className="w-4 h-4" /> },
+    { id: "peso", label: "Seguimiento de peso", icon: <Scale className="w-4 h-4" /> },
     { id: "seguridad", label: "Seguridad", icon: <Lock className="w-4 h-4" /> },
   ];
 
@@ -468,6 +475,13 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ── Tab: Seguimiento de peso ── */}
+        {tab === "peso" && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <WeightLog />
+          </div>
+        )}
+
         {/* ── Tab: Seguridad ── */}
         {tab === "seguridad" && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
@@ -507,5 +521,13 @@ export default function SettingsPage() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsContent />
+    </Suspense>
   );
 }

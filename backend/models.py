@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Optional
 import uuid
@@ -207,6 +207,30 @@ class DailyStats(SQLModel):
     total_calories: float
     meal_count: int
     breakdown: dict
+
+
+class WeightEntry(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    weight_kg: float
+    notes: Optional[str] = Field(default=None)
+    recorded_at: date = Field(default_factory=date.today)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class WeightEntryCreate(SQLModel):
+    weight_kg: float
+    notes: Optional[str] = None
+    recorded_at: Optional[date] = None
+
+
+class WeightEntryRead(SQLModel):
+    id: int
+    user_id: str
+    weight_kg: float
+    notes: Optional[str]
+    recorded_at: date
+    created_at: datetime
 
 
 class Token(SQLModel):
