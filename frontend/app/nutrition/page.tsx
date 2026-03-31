@@ -499,7 +499,11 @@ export default function NutritionPage() {
       <ChatWidget onDataChanged={() => fetchData()} />
 
       {showModal && (
-        <AddMealModal onClose={() => setShowModal(false)} onAdded={() => { fetchData(); setShowModal(false); }} />
+        <AddMealModal
+          onClose={() => setShowModal(false)}
+          onAdded={() => { fetchData(); setShowModal(false); }}
+          selectedDate={mode === "day" ? selectedDate : undefined}
+        />
       )}
 
       {editMeal && (

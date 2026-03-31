@@ -104,6 +104,7 @@ export async function createMealManual(meal: {
   calories: number;
   category: string;
   source?: string;
+  recorded_at?: string;
 }): Promise<Meal> {
   const res = await fetch(`${API_URL}/meals`, {
     method: "POST",
@@ -114,11 +115,11 @@ export async function createMealManual(meal: {
   return res.json();
 }
 
-export async function createMealAI(text: string): Promise<Meal> {
+export async function createMealAI(text: string, recorded_at?: string): Promise<Meal> {
   const res = await fetch(`${API_URL}/meals/ai?source=Chatbot`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, ...(recorded_at ? { recorded_at } : {}) }),
   });
   if (!res.ok) throw new Error("Error al analizar alimento");
   return res.json();
@@ -208,6 +209,7 @@ export async function createWorkout(data: {
   calories_burned: number;
   notes?: string;
   details_json?: string;
+  recorded_at?: string;
 }): Promise<Workout> {
   const res = await fetch(`${API_URL}/workouts`, {
     method: "POST",

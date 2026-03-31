@@ -143,6 +143,7 @@ class WorkoutCreate(SQLModel):
     calories_burned: float
     notes: Optional[str] = None
     details_json: Optional[str] = None
+    recorded_at: Optional[datetime] = None  # si se provee, se usa como created_at
 
 
 class WorkoutUpdate(SQLModel):
@@ -187,7 +188,7 @@ class Meal(MealBase, table=True):
 
 
 class MealCreate(MealBase):
-    pass
+    recorded_at: Optional[datetime] = None  # si se provee, se usa como created_at
 
 
 class MealUpdate(SQLModel):

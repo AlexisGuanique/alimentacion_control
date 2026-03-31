@@ -472,6 +472,7 @@ export default function WorkoutsPage() {
           userWeightKg={user?.weight_kg}
           onClose={() => setShowModal(false)}
           onAdded={() => { fetchData(); setShowModal(false); }}
+          selectedDate={mode === "day" ? selectedDate : undefined}
         />
       )}
 

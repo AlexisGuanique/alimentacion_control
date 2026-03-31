@@ -22,10 +22,14 @@ interface Props {
   userWeightKg?: number | null;
   onClose: () => void;
   onAdded: () => void;
+  /** Fecha seleccionada (YYYY-MM-DD). Si no se pasa, usa la fecha del servidor. */
+  selectedDate?: string;
 }
 
-export default function AddWorkoutModal({ userWeightKg, onClose, onAdded }: Props) {
+export default function AddWorkoutModal({ userWeightKg, onClose, onAdded, selectedDate }: Props) {
   const weight = userWeightKg || 70;
+  // Convierte "YYYY-MM-DD" a un ISO string de mediodía para evitar problemas de zona horaria
+  const recordedAt = selectedDate ? `${selectedDate}T12:00:00` : undefined;
   const [mode, setMode] = useState<"manual" | "ai">("ai");
 
   // ── Manual state ──────────────────────────────────────────────────────────
@@ -82,6 +86,7 @@ export default function AddWorkoutModal({ userWeightKg, onClose, onAdded }: Prop
         calories_burned: calories,
         notes: notes || undefined,
         details_json: buildDetailsJson(),
+        ...(recordedAt ? { recorded_at: recordedAt } : {}),
       });
       onAdded();
     } catch { setError("No se pudo registrar el entrenamiento."); }
@@ -99,7 +104,7 @@ export default function AddWorkoutModal({ userWeightKg, onClose, onAdded }: Prop
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("nutritrack_token")}`,
         },
-        body: JSON.stringify({ text: aiText }),
+        body: JSON.stringify({ text: aiText, ...(recordedAt ? { recorded_at: recordedAt } : {}) }),
       });
       if (!res.ok) throw new Error();
       onAdded();

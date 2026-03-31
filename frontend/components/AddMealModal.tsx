@@ -12,9 +12,13 @@ const CATEGORIES = [
 interface AddMealModalProps {
   onClose: () => void;
   onAdded: (meal: Meal) => void;
+  /** Fecha seleccionada (YYYY-MM-DD). Si no se pasa, usa la fecha del servidor. */
+  selectedDate?: string;
 }
 
-export default function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
+export default function AddMealModal({ onClose, onAdded, selectedDate }: AddMealModalProps) {
+  // Convierte "YYYY-MM-DD" a un ISO string de mediodía para evitar problemas de zona horaria
+  const recordedAt = selectedDate ? `${selectedDate}T12:00:00` : undefined;
   const [tab, setTab] = useState<"manual" | "ai">("ai");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -36,6 +40,7 @@ export default function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
         calories: parseFloat(manual.calories),
         category: manual.category,
         source: "Manual",
+        ...(recordedAt ? { recorded_at: recordedAt } : {}),
       });
       onAdded(meal);
       onClose();
@@ -52,7 +57,7 @@ export default function AddMealModal({ onClose, onAdded }: AddMealModalProps) {
     setLoading(true);
     setError("");
     try {
-      const meal = await createMealAI(aiText);
+      const meal = await createMealAI(aiText, recordedAt);
       onAdded(meal);
       onClose();
     } catch (err: unknown) {

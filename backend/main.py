@@ -211,7 +211,10 @@ def create_meal(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    meal = Meal(**meal_in.model_dump(), user_id=current_user.id)
+    data = meal_in.model_dump(exclude={"recorded_at"})
+    meal = Meal(**data, user_id=current_user.id)
+    if meal_in.recorded_at:
+        meal.created_at = meal_in.recorded_at
     session.add(meal)
     session.commit()
     session.refresh(meal)
@@ -227,6 +230,7 @@ async def create_meal_ai(
 ):
     body = await request.json()
     raw_text = body.get("text", "")
+    recorded_at_str = body.get("recorded_at")
     if not raw_text:
         raise HTTPException(status_code=400, detail="El campo 'text' es requerido.")
 
@@ -242,6 +246,11 @@ async def create_meal_ai(
         source=source,
         raw_text=raw_text,
     )
+    if recorded_at_str:
+        try:
+            meal.created_at = datetime.fromisoformat(recorded_at_str)
+        except ValueError:
+            pass
     session.add(meal)
     session.commit()
     session.refresh(meal)
@@ -411,7 +420,10 @@ def create_workout(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    workout = WorkoutSession(**workout_in.model_dump(), user_id=current_user.id)
+    data = workout_in.model_dump(exclude={"recorded_at"})
+    workout = WorkoutSession(**data, user_id=current_user.id)
+    if workout_in.recorded_at:
+        workout.created_at = workout_in.recorded_at
     session.add(workout)
     session.commit()
     session.refresh(workout)
@@ -427,6 +439,7 @@ async def create_workout_ai(
     import json as _json
     body = await request.json()
     raw_text = body.get("text", "")
+    recorded_at_str = body.get("recorded_at")
     if not raw_text:
         raise HTTPException(status_code=400, detail="El campo 'text' es requerido.")
 
@@ -443,6 +456,11 @@ async def create_workout_ai(
         notes=result.get("notes"),
         details_json=_json.dumps(result.get("details", {}), ensure_ascii=False),
     )
+    if recorded_at_str:
+        try:
+            workout.created_at = datetime.fromisoformat(recorded_at_str)
+        except ValueError:
+            pass
     session.add(workout)
     session.commit()
     session.refresh(workout)
