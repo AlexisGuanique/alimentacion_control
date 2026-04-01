@@ -241,26 +241,54 @@ export default function NutritionPage() {
 
   const handleLogout = () => { localStorage.removeItem("nutritrack_token"); router.push("/login"); };
 
+  // Actualiza el estado local tras eliminar una comida, sin re-fetch (evita el flash de pantalla)
+  const removeMealFromState = (id: number) => {
+    const deleted =
+      dayMeals.find((m) => m.id === id) ||
+      weekMeals.find((m) => m.id === id) ||
+      monthMeals.find((m) => m.id === id);
+
+    setDayMeals((prev) => prev.filter((m) => m.id !== id));
+    setWeekMeals((prev) => prev.filter((m) => m.id !== id));
+    setMonthMeals((prev) => prev.filter((m) => m.id !== id));
+
+    if (deleted) {
+      // Actualiza stats diarios
+      setDayStats((prev) => prev ? {
+        ...prev,
+        total_calories: Math.max(0, prev.total_calories - deleted.calories),
+        meal_count: Math.max(0, prev.meal_count - 1),
+        breakdown: { ...prev.breakdown, [deleted.category]: Math.max(0, (prev.breakdown[deleted.category] || 0) - deleted.calories) },
+      } : prev);
+
+      // Actualiza stats mensuales
+      setMonthlyStats((prev) => prev ? {
+        ...prev,
+        total_calories: Math.max(0, prev.total_calories - deleted.calories),
+        total_meals: Math.max(0, prev.total_meals - 1),
+        daily_data: prev.daily_data.map((d) =>
+          d.date === deleted.created_at.split("T")[0]
+            ? { ...d, calories: Math.max(0, d.calories - deleted.calories), meal_count: Math.max(0, d.meal_count - 1) }
+            : d
+        ),
+        category_breakdown: {
+          ...prev.category_breakdown,
+          [deleted.category]: Math.max(0, (prev.category_breakdown[deleted.category] || 0) - deleted.calories),
+        },
+      } : prev);
+    }
+  };
+
   const handleDeleteMeal = async (id: number) => {
     try {
       await deleteMeal(id);
-      await fetchData();
+      removeMealFromState(id);
     } catch { /* ignore */ }
     setConfirmId(null);
   };
 
-  const handleDayDeleted = (id: number) => {
-    const deleted = dayMeals.find((m) => m.id === id);
-    setDayMeals((prev) => prev.filter((m) => m.id !== id));
-    if (deleted && dayStats) {
-      setDayStats({
-        ...dayStats,
-        total_calories: Math.max(0, dayStats.total_calories - deleted.calories),
-        meal_count: dayStats.meal_count - 1,
-        breakdown: { ...dayStats.breakdown, [deleted.category]: Math.max(0, (dayStats.breakdown[deleted.category] || 0) - deleted.calories) },
-      });
-    }
-  };
+  // Usado por MealTable (ya hizo el DELETE en el server, solo actualiza estado)
+  const handleDayDeleted = (id: number) => removeMealFromState(id);
 
   if (loading) {
     return (
