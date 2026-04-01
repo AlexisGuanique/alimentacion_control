@@ -25,7 +25,12 @@ import ConfirmModal from "@/components/ConfirmModal";
 import AppLayout from "@/components/AppLayout";
 import PeriodNav, { PeriodMode, getMondayOf, getSundayOf } from "@/components/PeriodNav";
 
-function todayYM() {
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function todayYM(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
@@ -163,11 +168,19 @@ export default function NutritionPage() {
   const [editMeal, setEditMeal] = useState<Meal | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  // Período
-  const [mode, setMode] = useState<PeriodMode>("day");
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
-  const [selectedWeek, setSelectedWeek] = useState(() => getMondayOf(new Date().toISOString().split("T")[0]));
-  const [selectedMonth, setSelectedMonth] = useState(todayYM);
+  // Período — se persiste en sessionStorage para sobrevivir refrescos
+  const [mode, setMode] = useState<PeriodMode>(() =>
+    (typeof window !== "undefined" && (sessionStorage.getItem("nt_nut_mode") as PeriodMode)) || "day"
+  );
+  const [selectedDate, setSelectedDate] = useState(() =>
+    (typeof window !== "undefined" && sessionStorage.getItem("nt_nut_date")) || localToday()
+  );
+  const [selectedWeek, setSelectedWeek] = useState(() =>
+    (typeof window !== "undefined" && sessionStorage.getItem("nt_nut_week")) || getMondayOf(localToday())
+  );
+  const [selectedMonth, setSelectedMonth] = useState(() =>
+    (typeof window !== "undefined" && sessionStorage.getItem("nt_nut_month")) || todayYM()
+  );
 
   // Datos por modo
   const [dayMeals, setDayMeals] = useState<Meal[]>([]);
@@ -213,6 +226,12 @@ export default function NutritionPage() {
       setLoading(false);
     }
   }, [mode, selectedDate, selectedWeek, selectedMonth, fetchDayData, fetchWeekData, fetchMonthData, router]);
+
+  // Persiste el período en sessionStorage
+  useEffect(() => { sessionStorage.setItem("nt_nut_mode", mode); }, [mode]);
+  useEffect(() => { sessionStorage.setItem("nt_nut_date", selectedDate); }, [selectedDate]);
+  useEffect(() => { sessionStorage.setItem("nt_nut_week", selectedWeek); }, [selectedWeek]);
+  useEffect(() => { sessionStorage.setItem("nt_nut_month", selectedMonth); }, [selectedMonth]);
 
   useEffect(() => {
     const token = localStorage.getItem("nutritrack_token");
@@ -501,7 +520,23 @@ export default function NutritionPage() {
       {showModal && (
         <AddMealModal
           onClose={() => setShowModal(false)}
-          onAdded={() => { fetchData(); setShowModal(false); }}
+          onAdded={(meal) => {
+            // Actualiza el estado directamente sin re-fetchear (evita el flash de pantalla blanca)
+            if (mode === "day") {
+              setDayMeals((prev) => [...prev, meal]);
+              setDayStats((prev) => prev ? {
+                ...prev,
+                total_calories: prev.total_calories + meal.calories,
+                meal_count: prev.meal_count + 1,
+                breakdown: { ...prev.breakdown, [meal.category]: (prev.breakdown[meal.category] || 0) + meal.calories },
+              } : prev);
+            } else if (mode === "week") {
+              setWeekMeals((prev) => [...prev, meal]);
+            } else {
+              setMonthMeals((prev) => [...prev, meal]);
+            }
+            setShowModal(false);
+          }}
           selectedDate={mode === "day" ? selectedDate : undefined}
         />
       )}

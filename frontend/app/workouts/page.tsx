@@ -23,7 +23,12 @@ import EditWorkoutModal from "@/components/EditWorkoutModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import PeriodNav, { PeriodMode, getMondayOf, getSundayOf } from "@/components/PeriodNav";
 
-function todayYM() {
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function todayYM(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
@@ -160,11 +165,19 @@ export default function WorkoutsPage() {
   const [editWorkout, setEditWorkout] = useState<Workout | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  // Período
-  const [mode, setMode] = useState<PeriodMode>("day");
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
-  const [selectedWeek, setSelectedWeek] = useState(() => getMondayOf(new Date().toISOString().split("T")[0]));
-  const [selectedMonth, setSelectedMonth] = useState(todayYM);
+  // Período — se persiste en sessionStorage para sobrevivir refrescos
+  const [mode, setMode] = useState<PeriodMode>(() =>
+    (typeof window !== "undefined" && (sessionStorage.getItem("nt_wkt_mode") as PeriodMode)) || "day"
+  );
+  const [selectedDate, setSelectedDate] = useState(() =>
+    (typeof window !== "undefined" && sessionStorage.getItem("nt_wkt_date")) || localToday()
+  );
+  const [selectedWeek, setSelectedWeek] = useState(() =>
+    (typeof window !== "undefined" && sessionStorage.getItem("nt_wkt_week")) || getMondayOf(localToday())
+  );
+  const [selectedMonth, setSelectedMonth] = useState(() =>
+    (typeof window !== "undefined" && sessionStorage.getItem("nt_wkt_month")) || todayYM()
+  );
 
   // Datos por modo
   const [dayWorkouts, setDayWorkouts] = useState<Workout[]>([]);
@@ -210,6 +223,21 @@ export default function WorkoutsPage() {
       setLoading(false);
     }
   }, [mode, selectedDate, selectedWeek, selectedMonth, fetchDayData, fetchWeekData, fetchMonthData, router]);
+
+  // Refresca los datos en segundo plano sin mostrar pantalla de carga (para después de agregar un ejercicio)
+  const fetchDataSilent = useCallback(async () => {
+    try {
+      if (mode === "day") await fetchDayData(selectedDate);
+      else if (mode === "week") await fetchWeekData(selectedWeek);
+      else await fetchMonthData(selectedMonth);
+    } catch { /* ignorar */ }
+  }, [mode, selectedDate, selectedWeek, selectedMonth, fetchDayData, fetchWeekData, fetchMonthData]);
+
+  // Persiste el período en sessionStorage
+  useEffect(() => { sessionStorage.setItem("nt_wkt_mode", mode); }, [mode]);
+  useEffect(() => { sessionStorage.setItem("nt_wkt_date", selectedDate); }, [selectedDate]);
+  useEffect(() => { sessionStorage.setItem("nt_wkt_week", selectedWeek); }, [selectedWeek]);
+  useEffect(() => { sessionStorage.setItem("nt_wkt_month", selectedMonth); }, [selectedMonth]);
 
   useEffect(() => {
     const token = localStorage.getItem("nutritrack_token");
@@ -471,7 +499,7 @@ export default function WorkoutsPage() {
         <AddWorkoutModal
           userWeightKg={user?.weight_kg}
           onClose={() => setShowModal(false)}
-          onAdded={() => { fetchData(); setShowModal(false); }}
+          onAdded={() => { setShowModal(false); fetchDataSilent(); }}
           selectedDate={mode === "day" ? selectedDate : undefined}
         />
       )}

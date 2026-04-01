@@ -63,8 +63,13 @@ function weekLabel(monday: string): string {
     : `${sDay} ${sMon} – ${eDay} ${eMon} ${eYear}`;
 }
 
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function isFutureWeek(monday: string): boolean {
-  const todayMonday = getMondayOf(new Date().toISOString().split("T")[0]);
+  const todayMonday = getMondayOf(localToday());
   return monday >= todayMonday;
 }
 
@@ -86,8 +91,8 @@ function nextMonthStr(ym: string) {
   return month === 12 ? formatMonth(year + 1, 1) : formatMonth(year, month + 1);
 }
 function isCurrentOrFutureMonth(ym: string) {
-  const now = new Date();
-  return ym >= formatMonth(now.getFullYear(), now.getMonth() + 1);
+  const t = localToday().substring(0, 7); // "YYYY-MM"
+  return ym >= t;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
