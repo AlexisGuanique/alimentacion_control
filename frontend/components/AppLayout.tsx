@@ -14,7 +14,7 @@ export default function AppLayout({ children, userName, userEmail, onLogout }: A
     <div className="min-h-screen bg-gray-50">
       <Sidebar userName={userName} userEmail={userEmail} onLogout={onLogout} />
       {/* Desktop: offset for sidebar. Mobile: offset for top bar */}
-      <main className="lg:ml-60 pt-14 lg:pt-0">
+      <main className="lg:ml-60 pt-14 lg:pt-0 overflow-x-hidden">
         {children}
       </main>
     </div>

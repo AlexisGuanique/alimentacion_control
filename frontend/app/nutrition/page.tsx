@@ -311,7 +311,7 @@ export default function NutritionPage() {
 
   return (
     <AppLayout userName={user?.full_name} userEmail={user?.email} onLogout={handleLogout}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28 sm:pb-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28 sm:pb-8 space-y-6 overflow-x-hidden">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -485,23 +485,23 @@ export default function NutritionPage() {
             {/* Categorías + Lista por día */}
             <div className="grid lg:grid-cols-3 gap-4">
               {monthlyTopBreakdown.length > 0 && (
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm min-w-0 overflow-hidden">
                   <h3 className="font-semibold text-gray-900 mb-4">Categorías del mes</h3>
                   <div className="space-y-2.5">
                     {monthlyTopBreakdown.map(([cat, cal]) => {
                       const pct = ((cal / monthlyTotalCat) * 100).toFixed(0);
                       return (
-                        <div key={cat} className="flex items-center gap-3">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium w-24 text-center flex-shrink-0 ${CATEGORY_COLORS[cat] || "bg-gray-100 text-gray-700"}`}>{cat}</span>
-                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-primary/60 rounded-full" style={{ width: `${pct}%` }} /></div>
-                          <span className="text-xs text-gray-500 w-16 text-right flex-shrink-0">{cal.toFixed(0)} kcal</span>
+                        <div key={cat} className="flex items-center gap-2 min-w-0">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium w-20 sm:w-24 text-center flex-shrink-0 truncate ${CATEGORY_COLORS[cat] || "bg-gray-100 text-gray-700"}`}>{cat}</span>
+                          <div className="flex-1 min-w-0 h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-primary/60 rounded-full" style={{ width: `${pct}%` }} /></div>
+                          <span className="text-xs text-gray-500 w-14 sm:w-16 text-right flex-shrink-0 whitespace-nowrap">{cal.toFixed(0)} kcal</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
               )}
-              <div className={monthlyTopBreakdown.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}>
+              <div className={`min-w-0 overflow-hidden ${monthlyTopBreakdown.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}>
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Apple className="w-4 h-4 text-primary" />Comidas por día</h3>
                 <MealsByDay
                   meals={monthMeals}

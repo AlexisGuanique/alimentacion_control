@@ -310,7 +310,7 @@ export default function WorkoutsPage() {
 
   return (
     <AppLayout userName={user?.full_name} userEmail={user?.email} onLogout={handleLogout}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 overflow-x-hidden">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -403,7 +403,7 @@ export default function WorkoutsPage() {
               </ResponsiveContainer>
             </div>
 
-            <div>
+            <div className="min-w-0 overflow-hidden">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Dumbbell className="w-4 h-4 text-blue-500" /> Entrenamientos por día
               </h3>
@@ -462,25 +462,25 @@ export default function WorkoutsPage() {
             {/* Desglose por tipo + Lista por día */}
             <div className="grid lg:grid-cols-3 gap-4">
               {monthlyTypeBreakdown.length > 0 && (
-                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm min-w-0 overflow-hidden">
                   <h3 className="font-semibold text-gray-900 mb-4">Tipos de ejercicio</h3>
                   <div className="space-y-2.5">
                     {monthlyTypeBreakdown.map(([type, cal]) => {
                       const pct = ((cal / monthlyTotalType) * 100).toFixed(0);
                       return (
-                        <div key={type} className="flex items-center gap-3">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium w-24 text-center flex-shrink-0 ${TYPE_COLORS[type] || "bg-gray-100 text-gray-700"}`}>{type}</span>
-                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div key={type} className="flex items-center gap-2 min-w-0">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium w-20 sm:w-24 text-center flex-shrink-0 truncate ${TYPE_COLORS[type] || "bg-gray-100 text-gray-700"}`}>{type}</span>
+                          <div className="flex-1 min-w-0 h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div className="h-full bg-blue-400/70 rounded-full" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-xs text-gray-500 w-16 text-right flex-shrink-0">{cal.toFixed(0)} kcal</span>
+                          <span className="text-xs text-gray-500 w-14 sm:w-16 text-right flex-shrink-0 whitespace-nowrap">{cal.toFixed(0)} kcal</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
               )}
-              <div className={monthlyTypeBreakdown.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}>
+              <div className={`min-w-0 overflow-hidden ${monthlyTypeBreakdown.length > 0 ? "lg:col-span-2" : "lg:col-span-3"}`}>
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <Dumbbell className="w-4 h-4 text-blue-500" /> Entrenamientos por día
                 </h3>
