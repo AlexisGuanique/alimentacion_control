@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Apple, Dumbbell, Settings, LogOut,
-  Leaf, Menu, X, ChevronRight, ClipboardList,
+  Leaf, Menu, X, ChevronRight, ClipboardList, BookOpenCheck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { label: "Nutrición", href: "/nutrition", icon: Apple },
   { label: "Ejercicios", href: "/workouts", icon: Dumbbell },
   { label: "Rutinas", href: "/routines", icon: ClipboardList },
+  { label: "Plan de Comidas", href: "/meal-plans", icon: BookOpenCheck },
   { label: "Configuración", href: "/settings", icon: Settings },
 ];
 

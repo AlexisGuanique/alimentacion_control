@@ -277,6 +277,46 @@ class RoutineUpdate(SQLModel):
     content_json: Optional[str] = None
 
 
+class MealPlan(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    name: str
+    goal: str
+    description: Optional[str] = Field(default=None)
+    days: int = Field(default=7)
+    calorie_target: Optional[float] = Field(default=None)
+    dietary_restrictions: str = Field(default="Ninguna")
+    content_json: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class MealPlanCreate(SQLModel):
+    goal: str
+    days: int = 7
+    calorie_target: Optional[float] = None
+    dietary_restrictions: str = "Ninguna"
+    extra_notes: Optional[str] = None
+
+
+class MealPlanRead(SQLModel):
+    id: int
+    user_id: str
+    name: str
+    goal: str
+    description: Optional[str]
+    days: int
+    calorie_target: Optional[float]
+    dietary_restrictions: str
+    content_json: str
+    created_at: datetime
+
+
+class MealPlanUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    content_json: Optional[str] = None
+
+
 class Token(SQLModel):
     access_token: str
     token_type: str

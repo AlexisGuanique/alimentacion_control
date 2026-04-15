@@ -467,6 +467,109 @@ export async function updateRoutine(
   return res.json();
 }
 
+// ─── Planes de Alimentación ───────────────────────────────────────────────────
+
+export interface MealPlanFood {
+  name: string;
+  amount: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  preparation?: string;
+}
+
+export interface MealPlanMeal {
+  meal_type: string;
+  time_suggestion: string;
+  total_calories: number;
+  total_protein_g: number;
+  total_carbs_g: number;
+  total_fat_g: number;
+  foods: MealPlanFood[];
+}
+
+export interface MealPlanDay {
+  day_number: number;
+  day_name: string;
+  total_calories: number;
+  total_protein_g: number;
+  total_carbs_g: number;
+  total_fat_g: number;
+  meals: MealPlanMeal[];
+}
+
+export interface MealPlanContent {
+  name: string;
+  description: string;
+  daily_calories: number;
+  daily_protein_g: number;
+  daily_carbs_g: number;
+  daily_fat_g: number;
+  days: MealPlanDay[];
+  shopping_list: string[];
+  general_tips: string;
+  hydration: string;
+}
+
+export interface MealPlan {
+  id: number;
+  user_id: string;
+  name: string;
+  goal: string;
+  description: string | null;
+  days: number;
+  calorie_target: number | null;
+  dietary_restrictions: string;
+  content_json: string;
+  created_at: string;
+}
+
+export interface MealPlanCreateRequest {
+  goal: string;
+  days: number;
+  calorie_target?: number;
+  dietary_restrictions: string;
+  extra_notes?: string;
+}
+
+export async function generateMealPlan(data: MealPlanCreateRequest): Promise<MealPlan> {
+  const res = await fetch(`${API_URL}/meal-plans/ai`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al generar el plan");
+  return res.json();
+}
+
+export async function getMealPlans(): Promise<MealPlan[]> {
+  const res = await fetch(`${API_URL}/meal-plans`, { headers: authHeaders() });
+  if (!res.ok) throw new Error("Error al obtener planes");
+  return res.json();
+}
+
+export async function updateMealPlan(
+  id: number,
+  data: { name?: string; description?: string; content_json?: string }
+): Promise<MealPlan> {
+  const res = await fetch(`${API_URL}/meal-plans/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al actualizar el plan");
+  return res.json();
+}
+
+export async function deleteMealPlan(id: number): Promise<void> {
+  const res = await fetch(`${API_URL}/meal-plans/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al eliminar el plan");
+}
+
 export async function deleteRoutine(id: number): Promise<void> {
   const res = await fetch(`${API_URL}/routines/${id}`, {
     method: "DELETE",

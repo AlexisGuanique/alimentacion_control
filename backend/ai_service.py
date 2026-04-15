@@ -129,6 +129,7 @@ class NutritionistAI:
             self.goal_chain = None
             self.workout_chain = None
             self.routine_chain = None
+            self.meal_plan_chain = None
             return
 
         meal_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.2)
@@ -136,12 +137,14 @@ class NutritionistAI:
         goal_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.3)
         workout_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.2)
         routine_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.4)
+        meal_plan_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.4)
 
         self.meal_chain = MEAL_PROMPT | meal_model
         self.chat_chain = CHAT_PROMPT | chat_model
         self.goal_chain = GOAL_PROMPT | goal_model
         self.workout_chain = WORKOUT_PROMPT | workout_model
         self.routine_chain = ROUTINE_PROMPT | routine_model
+        self.meal_plan_chain = MEAL_PLAN_PROMPT | meal_plan_model
 
     def _extract_text(self, content) -> str:
         if isinstance(content, str):
@@ -251,6 +254,42 @@ class NutritionistAI:
             return None
 
 
+    async def generate_meal_plan(
+        self,
+        goal: str,
+        days: int,
+        calorie_target: Optional[float],
+        dietary_restrictions: str,
+        weight_kg: float = 75.0,
+        height_cm: float = 170.0,
+        age: int = 30,
+        gender: str = "Masculino",
+        activity_level: str = "Moderado",
+        extra_notes: str = "",
+    ) -> Optional[dict]:
+        if not self.meal_plan_chain:
+            return None
+        try:
+            calorie_str = f"{calorie_target:.0f} kcal/día" if calorie_target else "Calcular según datos del usuario"
+            response = await self.meal_plan_chain.ainvoke({
+                "goal": goal,
+                "days": days,
+                "calorie_target": calorie_str,
+                "dietary_restrictions": dietary_restrictions,
+                "weight_kg": weight_kg,
+                "height_cm": height_cm,
+                "age": age,
+                "gender": gender,
+                "activity_level": activity_level,
+                "extra_notes": extra_notes or "Sin restricciones adicionales",
+            })
+            raw = self._extract_text(response.content)
+            cleaned = re.sub(r"```(?:json)?|```", "", raw).strip()
+            return json.loads(cleaned)
+        except Exception as exc:
+            logger.error("Error en generate_meal_plan: %s", exc)
+            return None
+
     async def generate_routine(
         self,
         goal: str,
@@ -347,6 +386,95 @@ Datos del usuario: Peso {weight_kg} kg, Altura {height_cm} cm, Edad {age} años,
 Notas adicionales: {extra_notes}
 
 Crea una rutina completa, detallada y profesional.""",
+    ),
+])
+
+
+MEAL_PLAN_PROMPT = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """Eres un nutricionista clínico de élite especializado en planes de alimentación personalizados.
+Tu tarea es crear un plan de alimentación COMPLETO, DETALLADO y REALISTA para los días indicados.
+
+Devuelve EXCLUSIVAMENTE un JSON válido con esta estructura exacta (sin texto adicional, sin markdown):
+{{
+  "name": "Nombre descriptivo del plan",
+  "description": "Descripción del plan en 2-3 oraciones, metodología y beneficios esperados.",
+  "daily_calories": 1800.0,
+  "daily_protein_g": 140.0,
+  "daily_carbs_g": 180.0,
+  "daily_fat_g": 60.0,
+  "days": [
+    {{
+      "day_number": 1,
+      "day_name": "Lunes",
+      "total_calories": 1800.0,
+      "total_protein_g": 140.0,
+      "total_carbs_g": 180.0,
+      "total_fat_g": 60.0,
+      "meals": [
+        {{
+          "meal_type": "Desayuno",
+          "time_suggestion": "07:00 - 08:00",
+          "total_calories": 420.0,
+          "total_protein_g": 28.0,
+          "total_carbs_g": 52.0,
+          "total_fat_g": 10.0,
+          "foods": [
+            {{
+              "name": "Avena con leche descremada",
+              "amount": "80g avena + 200ml leche",
+              "calories": 340.0,
+              "protein_g": 14.0,
+              "carbs_g": 52.0,
+              "fat_g": 5.0,
+              "preparation": "Cocinar la avena con la leche a fuego medio, agregar canela al gusto"
+            }},
+            {{
+              "name": "Claras de huevo revueltas",
+              "amount": "4 claras (140g)",
+              "calories": 80.0,
+              "protein_g": 14.0,
+              "carbs_g": 0.0,
+              "fat_g": 0.0,
+              "preparation": "Batir y cocinar en sartén antiadherente sin aceite"
+            }}
+          ]
+        }}
+      ]
+    }}
+  ],
+  "shopping_list": [
+    "Avena: 1kg",
+    "Leche descremada: 3L"
+  ],
+  "general_tips": "Consejos generales sobre el plan nutricional en 3-4 oraciones.",
+  "hydration": "Beber al menos 2.5 litros de agua al día..."
+}}
+
+REGLAS IMPORTANTES:
+- Incluye TODOS los días especificados (days_number días)
+- Cada día debe tener: Desayuno, Almuerzo, Merienda y Cena (mínimo 3 comidas)
+- Cada alimento DEBE tener: nombre, cantidad en gramos/ml EXACTOS, calorías, proteínas, carbohidratos, grasas y preparación breve
+- Los macros de los alimentos deben sumar aproximadamente las calorías del día
+- Adapta los alimentos a las restricciones dietéticas indicadas
+- Usa alimentos comunes y accesibles en Argentina/Latinoamérica
+- El plan debe ser nutritivo, variado y sostenible
+- Incluye una lista de compras completa
+- Calorías: 1 proteína = 4 kcal, 1 carbohidrato = 4 kcal, 1 grasa = 9 kcal""",
+    ),
+    (
+        "human",
+        """Genera un plan de alimentación personalizado con estos parámetros:
+
+Objetivo principal: {goal}
+Cantidad de días del plan: {days}
+Objetivo calórico: {calorie_target}
+Restricciones dietéticas: {dietary_restrictions}
+Datos del usuario: Peso {weight_kg} kg, Altura {height_cm} cm, Edad {age} años, Género: {gender}, Nivel de actividad: {activity_level}
+Notas adicionales: {extra_notes}
+
+Crea un plan completo, detallado y con pesos/porciones exactos en gramos.""",
     ),
 ])
 

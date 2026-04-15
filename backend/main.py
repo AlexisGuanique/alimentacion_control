@@ -29,6 +29,10 @@ from models import (
     MealUpdate,
     MealSource,
     PasswordChange,
+    MealPlan,
+    MealPlanCreate,
+    MealPlanRead,
+    MealPlanUpdate,
     Routine,
     RoutineCreate,
     RoutineRead,
@@ -754,6 +758,91 @@ def delete_routine(
     if not routine or routine.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Rutina no encontrada.")
     session.delete(routine)
+    session.commit()
+
+
+# ─── Planes de Alimentación ───────────────────────────────────────────────────
+
+
+@app.post("/meal-plans/ai", response_model=MealPlanRead, status_code=status.HTTP_201_CREATED)
+async def create_meal_plan_ai(
+    plan_in: MealPlanCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    import json as _json
+    result = await nutritionist_ai.generate_meal_plan(
+        goal=plan_in.goal,
+        days=plan_in.days,
+        calorie_target=plan_in.calorie_target,
+        dietary_restrictions=plan_in.dietary_restrictions,
+        weight_kg=current_user.weight_kg or 75.0,
+        height_cm=current_user.height_cm or 170.0,
+        age=current_user.age or 30,
+        gender=current_user.gender or "Masculino",
+        activity_level=current_user.activity_level or "Moderado",
+        extra_notes=plan_in.extra_notes or "",
+    )
+    if not result:
+        raise HTTPException(status_code=422, detail="No se pudo generar el plan. Intenta de nuevo.")
+
+    plan = MealPlan(
+        user_id=current_user.id,
+        name=result.get("name", f"Plan de {plan_in.goal}"),
+        goal=plan_in.goal,
+        description=result.get("description"),
+        days=plan_in.days,
+        calorie_target=plan_in.calorie_target or result.get("daily_calories"),
+        dietary_restrictions=plan_in.dietary_restrictions,
+        content_json=_json.dumps(result, ensure_ascii=False),
+    )
+    session.add(plan)
+    session.commit()
+    session.refresh(plan)
+    return plan
+
+
+@app.get("/meal-plans", response_model=list[MealPlanRead])
+def get_meal_plans(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    return session.exec(
+        select(MealPlan)
+        .where(MealPlan.user_id == current_user.id)
+        .order_by(col(MealPlan.created_at).desc())
+    ).all()
+
+
+@app.patch("/meal-plans/{plan_id}", response_model=MealPlanRead)
+def update_meal_plan(
+    plan_id: int,
+    plan_in: MealPlanUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    plan = session.get(MealPlan, plan_id)
+    if not plan or plan.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Plan no encontrado.")
+    data = plan_in.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(plan, field, value)
+    session.add(plan)
+    session.commit()
+    session.refresh(plan)
+    return plan
+
+
+@app.delete("/meal-plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_meal_plan(
+    plan_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    plan = session.get(MealPlan, plan_id)
+    if not plan or plan.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Plan no encontrado.")
+    session.delete(plan)
     session.commit()
 
 
