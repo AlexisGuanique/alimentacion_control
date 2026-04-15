@@ -74,16 +74,16 @@ function FoodEditorInline({
   }
 
   return (
-    <div className="border border-white/10 rounded-xl p-3 space-y-2 bg-white/5">
+    <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
       <div className="flex gap-2">
         <input
           placeholder="Nombre del alimento *"
           value={food.name}
           onChange={(e) => txt("name", e.target.value)}
-          className="flex-1 bg-transparent border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-green-500"
+          className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-green-500"
         />
         {canRemove && (
-          <button onClick={onRemove} className="p-1.5 text-red-400 hover:text-red-300">
+          <button onClick={onRemove} className="p-1.5 text-red-500 hover:text-red-400">
             <Trash2 className="w-4 h-4" />
           </button>
         )}
@@ -93,7 +93,7 @@ function FoodEditorInline({
           placeholder="Cantidad (ej: 80g avena)"
           value={food.amount}
           onChange={(e) => txt("amount", e.target.value)}
-          className="col-span-2 bg-transparent border border-white/20 rounded-lg px-3 py-1.5 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-green-500"
+          className="col-span-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-900 text-xs placeholder-gray-400 focus:outline-none focus:border-green-500"
         />
         {[
           { key: "calories" as const, label: "Kcal" },
@@ -108,7 +108,7 @@ function FoodEditorInline({
               min={0}
               value={food[key] || ""}
               onChange={(e) => num(key, e.target.value)}
-              className="w-full bg-transparent border border-white/20 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-green-500"
+              className="w-full bg-white border border-gray-200 rounded-lg px-2 py-1 text-gray-900 text-xs focus:outline-none focus:border-green-500"
             />
           </div>
         ))}
@@ -117,7 +117,7 @@ function FoodEditorInline({
         placeholder="Preparación breve (opcional)"
         value={food.preparation || ""}
         onChange={(e) => txt("preparation", e.target.value)}
-        className="w-full bg-transparent border border-white/20 rounded-lg px-3 py-1.5 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-green-500"
+        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-900 text-xs placeholder-gray-400 focus:outline-none focus:border-green-500"
       />
     </div>
   );
@@ -163,35 +163,35 @@ function MealEditor({
   }
 
   return (
-    <div className="border border-white/10 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-white/5">
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50">
         <button onClick={() => setOpen((o) => !o)} className="flex-1 flex items-center gap-2 text-left min-w-0">
           {open ? <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />}
           <select
             value={meal.meal_type}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => onChange({ ...meal, meal_type: e.target.value })}
-            className="bg-transparent text-white text-sm font-semibold focus:outline-none cursor-pointer"
+            className="bg-transparent text-gray-900 text-sm font-semibold focus:outline-none cursor-pointer"
           >
-            {MEAL_TYPES.map((t) => <option key={t} value={t} className="bg-gray-900">{t}</option>)}
+            {MEAL_TYPES.map((t) => <option key={t} value={t} className="bg-white">{t}</option>)}
           </select>
           <span className="text-gray-500 text-xs ml-auto">
             {Math.round(meal.total_calories)} kcal · {meal.foods.length} alimento{meal.foods.length !== 1 ? "s" : ""}
           </span>
         </button>
         {canRemove && (
-          <button onClick={onRemove} className="p-1 text-red-400 hover:text-red-300 flex-shrink-0">
+          <button onClick={onRemove} className="p-1 text-red-500 hover:text-red-400 flex-shrink-0">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
       {open && (
-        <div className="p-3 space-y-2 border-t border-white/10">
+        <div className="p-3 space-y-2 border-t border-gray-200">
           <input
             placeholder="Horario sugerido (ej: 07:00 - 08:00)"
             value={meal.time_suggestion}
             onChange={(e) => onChange({ ...meal, time_suggestion: e.target.value })}
-            className="w-full bg-transparent border border-white/20 rounded-lg px-3 py-1.5 text-white text-xs placeholder-gray-500 focus:outline-none focus:border-green-500"
+            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-900 text-xs placeholder-gray-400 focus:outline-none focus:border-green-500"
           />
           {meal.foods.map((f, fi) => (
             <FoodEditorInline
@@ -204,7 +204,7 @@ function MealEditor({
           ))}
           <button
             onClick={addFood}
-            className="flex items-center gap-1.5 text-green-400 hover:text-green-300 text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 text-green-600 hover:text-green-500 text-xs font-medium transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Agregar alimento
           </button>
@@ -315,14 +315,14 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh]">
+      <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <div>
-            <h2 className="text-white font-bold text-lg">Crear plan de comidas</h2>
+            <h2 className="text-gray-900 font-bold text-lg">Crear plan de comidas</h2>
             <p className="text-gray-400 text-sm">Paso {step} de 2 — {step === 1 ? "Información básica" : "Armar el plan"}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl font-bold">✕</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
         </div>
 
         <div className="overflow-y-auto flex-1 p-6">
@@ -330,24 +330,24 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
           {step === 1 && (
             <div className="space-y-5">
               <div>
-                <label className="text-gray-300 text-sm font-medium block mb-1">Nombre del plan *</label>
+                <label className="text-gray-700 text-sm font-medium block mb-1">Nombre del plan *</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ej: Mi plan de semana"
-                  className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-green-500"
                 />
               </div>
 
               <div>
-                <label className="text-gray-300 text-sm font-medium block mb-2">Objetivo</label>
+                <label className="text-gray-700 text-sm font-medium block mb-2">Objetivo</label>
                 <div className="flex flex-wrap gap-2">
                   {GOALS.map((g) => (
                     <button
                       key={g}
                       onClick={() => setGoal(g)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                        goal === g ? "bg-green-600 border-green-500 text-white" : "border-white/20 text-gray-300 hover:border-white/40"
+                        goal === g ? "bg-green-600 border-green-500 text-white" : "border-gray-200 text-gray-700 hover:border-green-400"
                       }`}
                     >
                       {g}
@@ -357,14 +357,14 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
               </div>
 
               <div>
-                <label className="text-gray-300 text-sm font-medium block mb-2">Duración del plan</label>
+                <label className="text-gray-700 text-sm font-medium block mb-2">Duración del plan</label>
                 <div className="flex gap-2 flex-wrap">
                   {[1, 3, 5, 7, 14].map((d) => (
                     <button
                       key={d}
                       onClick={() => setDays(d)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                        days === d ? "bg-green-600 border-green-500 text-white" : "border-white/20 text-gray-300 hover:border-white/40"
+                        days === d ? "bg-green-600 border-green-500 text-white" : "border-gray-200 text-gray-700 hover:border-green-400"
                       }`}
                     >
                       {d} {d === 1 ? "día" : "días"}
@@ -374,7 +374,7 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
               </div>
 
               <div>
-                <label className="text-gray-300 text-sm font-medium block mb-1">
+                <label className="text-gray-700 text-sm font-medium block mb-1">
                   Objetivo calórico diario (kcal) <span className="text-gray-500">— opcional</span>
                 </label>
                 <input
@@ -382,19 +382,19 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
                   value={calorieTarget}
                   onChange={(e) => setCalorieTarget(e.target.value)}
                   placeholder="Ej: 1800"
-                  className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-green-500"
                 />
               </div>
 
               <div>
-                <label className="text-gray-300 text-sm font-medium block mb-2">Restricciones dietéticas</label>
+                <label className="text-gray-700 text-sm font-medium block mb-2">Restricciones dietéticas</label>
                 <div className="flex flex-wrap gap-2">
                   {RESTRICTIONS.map((r) => (
                     <button
                       key={r}
                       onClick={() => setDietary(r)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                        dietary === r ? "bg-green-600 border-green-500 text-white" : "border-white/20 text-gray-300 hover:border-white/40"
+                        dietary === r ? "bg-green-600 border-green-500 text-white" : "border-gray-200 text-gray-700 hover:border-green-400"
                       }`}
                     >
                       {r}
@@ -404,7 +404,7 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
               </div>
 
               <div>
-                <label className="text-gray-300 text-sm font-medium block mb-1">
+                <label className="text-gray-700 text-sm font-medium block mb-1">
                   Descripción <span className="text-gray-500">— opcional</span>
                 </label>
                 <textarea
@@ -412,7 +412,7 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Descripción breve del plan..."
-                  className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-green-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm resize-none focus:outline-none focus:border-green-500"
                 />
               </div>
 
@@ -434,7 +434,7 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                         activeDay === i
                           ? "bg-green-600 border-green-500 text-white"
-                          : "border-white/20 text-gray-400 hover:border-white/40"
+                          : "border-gray-200 text-gray-400 hover:border-green-400"
                       }`}
                     >
                       {d.day_name}
@@ -448,7 +448,7 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
                 <input
                   value={day.day_name}
                   onChange={(e) => updateDay(activeDay, { ...day, day_name: e.target.value })}
-                  className="flex-1 bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white font-semibold text-sm focus:outline-none focus:border-green-500"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 font-semibold text-sm focus:outline-none focus:border-green-500"
                 />
                 <span className="text-green-400 text-sm font-semibold flex-shrink-0">
                   {Math.round(day.total_calories)} kcal
@@ -468,17 +468,17 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
                 ))}
                 <button
                   onClick={addMealToDay}
-                  className="flex items-center gap-2 text-green-400 hover:text-green-300 text-sm font-medium transition-colors"
+                  className="flex items-center gap-2 text-green-600 hover:text-green-500 text-sm font-medium transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Agregar comida al día
                 </button>
               </div>
 
               {/* Shopping list & tips */}
-              <div className="border-t border-white/10 pt-4 space-y-4">
+              <div className="border-t border-gray-200 pt-4 space-y-4">
                 <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Información general del plan</p>
                 <div>
-                  <label className="text-gray-300 text-sm font-medium block mb-1">
+                  <label className="text-gray-700 text-sm font-medium block mb-1">
                     Lista de compras <span className="text-gray-500">— un ítem por línea</span>
                   </label>
                   <textarea
@@ -486,25 +486,25 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
                     value={shoppingList}
                     onChange={(e) => setShoppingList(e.target.value)}
                     placeholder={"Avena: 500g\nLeche descremada: 2L\nPechuga de pollo: 1kg"}
-                    className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-green-500"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm resize-none focus:outline-none focus:border-green-500"
                   />
                 </div>
                 <div>
-                  <label className="text-gray-300 text-sm font-medium block mb-1">Consejos generales</label>
+                  <label className="text-gray-700 text-sm font-medium block mb-1">Consejos generales</label>
                   <textarea
                     rows={2}
                     value={tips}
                     onChange={(e) => setTips(e.target.value)}
                     placeholder="Ej: Preparar las comidas con anticipación..."
-                    className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-green-500"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm resize-none focus:outline-none focus:border-green-500"
                   />
                 </div>
                 <div>
-                  <label className="text-gray-300 text-sm font-medium block mb-1">Hidratación</label>
+                  <label className="text-gray-700 text-sm font-medium block mb-1">Hidratación</label>
                   <input
                     value={hydration}
                     onChange={(e) => setHydration(e.target.value)}
-                    className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-green-500"
                   />
                 </div>
               </div>
@@ -515,11 +515,11 @@ export default function CreateMealPlanManualModal({ onClose, onCreated }: Props)
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/10 flex justify-between items-center flex-shrink-0">
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
           {step === 1 ? (
-            <button onClick={onClose} className="text-gray-400 hover:text-white text-sm">Cancelar</button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-sm">Cancelar</button>
           ) : (
-            <button onClick={() => setStep(1)} className="text-gray-400 hover:text-white text-sm">← Atrás</button>
+            <button onClick={() => setStep(1)} className="text-gray-400 hover:text-gray-600 text-sm">← Atrás</button>
           )}
 
           {step === 1 ? (
