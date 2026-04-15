@@ -59,6 +59,11 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        progressSlide: {
+          "0%":   { transform: "translateX(-100%)", width: "40%" },
+          "50%":  { transform: "translateX(80%)",  width: "60%" },
+          "100%": { transform: "translateX(200%)", width: "40%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",

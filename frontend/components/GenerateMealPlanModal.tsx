@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { generateMealPlan, MealPlan, MealPlanCreateRequest } from "@/lib/api";
 import { Sparkles } from "lucide-react";
+import AILoadingContent, { AISuccessContent } from "@/components/AILoadingModal";
 
 const GOALS = [
   { id: "Pérdida de grasa", emoji: "🔥", label: "Pérdida de grasa", desc: "Déficit calórico, alta proteína, baja en grasas saturadas" },
@@ -38,6 +39,8 @@ export default function GenerateMealPlanModal({ onClose, onGenerated, dailyCalor
   const [dietary, setDietary] = useState("Ninguna");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [generated, setGenerated] = useState<MealPlan | null>(null);
   const [error, setError] = useState("");
 
   async function handleGenerate() {
@@ -55,10 +58,11 @@ export default function GenerateMealPlanModal({ onClose, onGenerated, dailyCalor
         payload.calorie_target = Number(calorieTarget);
       }
       const plan = await generateMealPlan(payload);
-      onGenerated(plan);
+      setGenerated(plan);
+      setLoading(false);
+      setSuccess(true);
     } catch {
       setError("No se pudo generar el plan. Intenta de nuevo.");
-    } finally {
       setLoading(false);
     }
   }
@@ -66,20 +70,36 @@ export default function GenerateMealPlanModal({ onClose, onGenerated, dailyCalor
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden">
-        {/* Header */}
+
+        {/* Header — siempre visible */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-gray-900 font-bold text-lg flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-green-600" /> Generar Plan con IA
             </h2>
-            <p className="text-gray-500 text-sm">Paso {step} de 2</p>
+            <p className="text-gray-500 text-sm">
+              {loading ? "Trabajando…" : `Paso ${step} de 2`}
+            </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">
-            ✕
-          </button>
+          {!loading && (
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">
+              ✕
+            </button>
+          )}
         </div>
 
-        <div className="overflow-y-auto flex-1 p-6">
+        {/* Animación cargando */}
+        {loading && <AILoadingContent type="mealplan" />}
+
+        {/* Animación de éxito */}
+        {success && (
+          <AISuccessContent
+            type="mealplan"
+            onDone={() => { if (generated) onGenerated(generated); }}
+          />
+        )}
+
+        <div className={`overflow-y-auto flex-1 p-6 ${loading || success ? "hidden" : ""}`}>
           {step === 1 && (
             <div className="space-y-3">
               <p className="text-gray-700 text-sm font-medium mb-4">¿Cuál es tu objetivo principal?</p>
@@ -178,7 +198,7 @@ export default function GenerateMealPlanModal({ onClose, onGenerated, dailyCalor
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
+        <div className={`px-6 py-4 border-t border-gray-100 flex justify-between items-center ${loading || success ? "hidden" : ""}`}>
           {step === 1 ? (
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-sm">
               Cancelar

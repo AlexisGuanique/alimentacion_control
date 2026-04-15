@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Sparkles, Target, Dumbbell, Clock, Zap, ChevronDown } from "lucide-react";
 import { generateRoutine, Routine, RoutineCreateRequest } from "@/lib/api";
+import AILoadingContent, { AISuccessContent } from "@/components/AILoadingModal";
 
 const GOALS = [
   { value: "Pérdida de grasa", icon: "🔥", desc: "Quemar grasa y mejorar composición corporal" },
@@ -32,6 +33,8 @@ interface Props {
 export default function GenerateRoutineModal({ onClose, onGenerated }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [generated, setGenerated] = useState<Routine | null>(null);
   const [error, setError] = useState("");
 
   const [goal, setGoal] = useState(GOALS[0].value);
@@ -56,10 +59,11 @@ export default function GenerateRoutineModal({ onClose, onGenerated }: Props) {
         extra_notes: extraNotes || undefined,
       };
       const routine = await generateRoutine(data);
-      onGenerated(routine);
+      setGenerated(routine);
+      setLoading(false);
+      setSuccess(true);
     } catch {
       setError("No se pudo generar la rutina. Por favor intenta de nuevo.");
-    } finally {
       setLoading(false);
     }
   };
@@ -67,7 +71,8 @@ export default function GenerateRoutineModal({ onClose, onGenerated }: Props) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] overflow-y-auto">
-        {/* Header */}
+
+        {/* Header — siempre visible */}
         <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-gray-100 z-10">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
@@ -75,23 +80,41 @@ export default function GenerateRoutineModal({ onClose, onGenerated }: Props) {
             </div>
             <div>
               <h2 className="font-bold text-gray-900 leading-tight">Generar Rutina con IA</h2>
-              <p className="text-xs text-gray-400">Paso {step} de 2</p>
+              <p className="text-xs text-gray-400">
+                {loading ? "Trabajando…" : `Paso ${step} de 2`}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-all">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
+          {!loading && (
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-all">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          )}
         </div>
 
         {/* Progress bar */}
-        <div className="h-1 bg-gray-100">
-          <div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300"
-            style={{ width: step === 1 ? "50%" : "100%" }}
-          />
-        </div>
+        {!loading && (
+          <div className="h-1 bg-gray-100">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300"
+              style={{ width: step === 1 ? "50%" : "100%" }}
+            />
+          </div>
+        )}
 
-        <div className="p-6 space-y-5">
+        {/* Animación cargando */}
+        {loading && <AILoadingContent type="routine" />}
+
+        {/* Animación de éxito */}
+        {success && (
+          <AISuccessContent
+            type="routine"
+            onDone={() => { if (generated) onGenerated(generated); }}
+          />
+        )}
+
+        {/* Formulario — se oculta mientras carga o muestra éxito */}
+        <div className={`p-6 space-y-5 ${loading || success ? "hidden" : ""}`}>
           {step === 1 ? (
             <>
               {/* Goal selection */}

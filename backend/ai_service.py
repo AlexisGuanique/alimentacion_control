@@ -159,9 +159,29 @@ class NutritionistAI:
             return " ".join(parts)
         return str(content)
 
+    def _clean_json_str(self, raw: str) -> str:
+        """Limpia texto de IA para obtener JSON parseable de forma robusta."""
+        # 1. Quitar bloques de código markdown
+        text = re.sub(r"```(?:json)?", "", raw)
+        text = re.sub(r"```", "", text).strip()
+
+        # 2. Extraer solo el bloque JSON principal (primer { ... } o [ ... ])
+        match = re.search(r"(\{[\s\S]*\}|\[[\s\S]*\])", text)
+        if match:
+            text = match.group(1)
+
+        # 3. Eliminar comentarios de línea (// ...) y de bloque (/* ... */)
+        text = re.sub(r"//[^\n]*", "", text)
+        text = re.sub(r"/\*[\s\S]*?\*/", "", text)
+
+        # 4. Eliminar trailing commas antes de } o ]
+        text = re.sub(r",\s*([\}\]])", r"\1", text)
+
+        return text.strip()
+
     def _parse_response(self, content) -> dict:
         response_text = self._extract_text(content)
-        cleaned = re.sub(r"```(?:json)?|```", "", response_text).strip()
+        cleaned = self._clean_json_str(response_text)
         data = json.loads(cleaned)
         valid_categories = {c.value for c in FoodCategory}
         if data.get("category") not in valid_categories:
@@ -227,7 +247,7 @@ class NutritionistAI:
                 "fitness_goal": fitness_goal,
             })
             text = self._extract_text(response.content)
-            cleaned = re.sub(r"```(?:json)?|```", "", text).strip()
+            cleaned = self._clean_json_str(text)
             data = json.loads(cleaned)
             return GoalCalculationResult(**data)
         except Exception as exc:
@@ -244,7 +264,7 @@ class NutritionistAI:
                 "weight_kg": weight_kg,
             })
             raw = self._extract_text(response.content)
-            cleaned = re.sub(r"```(?:json)?|```", "", raw).strip()
+            cleaned = self._clean_json_str(raw)
             data = json.loads(cleaned)
             data["calories_burned"] = float(data.get("calories_burned", 0))
             data["duration_minutes"] = int(data.get("duration_minutes", 0))
@@ -284,7 +304,7 @@ class NutritionistAI:
                 "extra_notes": extra_notes or "Sin restricciones adicionales",
             })
             raw = self._extract_text(response.content)
-            cleaned = re.sub(r"```(?:json)?|```", "", raw).strip()
+            cleaned = self._clean_json_str(raw)
             return json.loads(cleaned)
         except Exception as exc:
             logger.error("Error en generate_meal_plan: %s", exc)
@@ -319,7 +339,7 @@ class NutritionistAI:
                 "extra_notes": extra_notes or "Sin notas adicionales",
             })
             raw = self._extract_text(response.content)
-            cleaned = re.sub(r"```(?:json)?|```", "", raw).strip()
+            cleaned = self._clean_json_str(raw)
             return json.loads(cleaned)
         except Exception as exc:
             logger.error("Error en generate_routine: %s", exc)
