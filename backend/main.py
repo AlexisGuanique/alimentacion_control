@@ -31,10 +31,12 @@ from models import (
     PasswordChange,
     MealPlan,
     MealPlanCreate,
+    MealPlanManualCreate,
     MealPlanRead,
     MealPlanUpdate,
     Routine,
     RoutineCreate,
+    RoutineManualCreate,
     RoutineRead,
     RoutineUpdate,
     Token,
@@ -705,6 +707,29 @@ async def create_routine_ai(
     return routine
 
 
+@app.post("/routines", response_model=RoutineRead, status_code=status.HTTP_201_CREATED)
+def create_routine_manual(
+    routine_in: RoutineManualCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    routine = Routine(
+        user_id=current_user.id,
+        name=routine_in.name,
+        goal=routine_in.goal,
+        description=routine_in.description,
+        duration_weeks=routine_in.duration_weeks,
+        days_per_week=routine_in.days_per_week,
+        fitness_level=routine_in.fitness_level,
+        equipment=routine_in.equipment,
+        content_json=routine_in.content_json,
+    )
+    session.add(routine)
+    session.commit()
+    session.refresh(routine)
+    return routine
+
+
 @app.get("/routines", response_model=list[RoutineRead])
 def get_routines(
     current_user: User = Depends(get_current_user),
@@ -795,6 +820,28 @@ async def create_meal_plan_ai(
         calorie_target=plan_in.calorie_target or result.get("daily_calories"),
         dietary_restrictions=plan_in.dietary_restrictions,
         content_json=_json.dumps(result, ensure_ascii=False),
+    )
+    session.add(plan)
+    session.commit()
+    session.refresh(plan)
+    return plan
+
+
+@app.post("/meal-plans", response_model=MealPlanRead, status_code=status.HTTP_201_CREATED)
+def create_meal_plan_manual(
+    plan_in: MealPlanManualCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    plan = MealPlan(
+        user_id=current_user.id,
+        name=plan_in.name,
+        goal=plan_in.goal,
+        description=plan_in.description,
+        days=plan_in.days,
+        calorie_target=plan_in.calorie_target,
+        dietary_restrictions=plan_in.dietary_restrictions,
+        content_json=plan_in.content_json,
     )
     session.add(plan)
     session.commit()

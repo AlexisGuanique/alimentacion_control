@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import AppLayout from "@/components/AppLayout";
 import GenerateRoutineModal from "@/components/GenerateRoutineModal";
+import CreateRoutineManualModal from "@/components/CreateRoutineManualModal";
 import EditRoutineModal from "@/components/EditRoutineModal";
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -524,6 +525,7 @@ export default function RoutinesPage() {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
   const [editRoutine, setEditRoutine] = useState<Routine | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
@@ -584,12 +586,20 @@ export default function RoutinesPage() {
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">Rutinas de entrenamiento generadas con IA</p>
           </div>
-          <button
-            onClick={() => setShowGenerateModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-sm"
-          >
-            <Sparkles className="w-4 h-4" /> Generar con IA
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowManualModal(true)}
+              className="px-4 py-2.5 bg-white hover:bg-gray-50 text-gray-600 text-sm font-medium rounded-xl border border-gray-200 transition-colors shadow-sm"
+            >
+              Crear manualmente
+            </button>
+            <button
+              onClick={() => setShowGenerateModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-sm"
+            >
+              <Sparkles className="w-4 h-4" /> Generar con IA
+            </button>
+          </div>
         </div>
 
         {routines.length === 0 ? (
@@ -601,12 +611,20 @@ export default function RoutinesPage() {
             <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
               Genera tu primera rutina personalizada con IA indicando tu objetivo y nivel.
             </p>
-            <button
-              onClick={() => setShowGenerateModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all"
-            >
-              <Sparkles className="w-4 h-4" /> Generar mi primera rutina
-            </button>
+            <div className="flex items-center gap-3 justify-center flex-wrap">
+              <button
+                onClick={() => setShowGenerateModal(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all"
+              >
+                <Sparkles className="w-4 h-4" /> Generar con IA
+              </button>
+              <button
+                onClick={() => setShowManualModal(true)}
+                className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-600 font-medium rounded-xl border border-gray-200 transition-colors"
+              >
+                Crear manualmente
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -647,6 +665,16 @@ export default function RoutinesPage() {
           onGenerated={(routine) => {
             setRoutines((prev) => [routine, ...prev]);
             setShowGenerateModal(false);
+          }}
+        />
+      )}
+
+      {showManualModal && (
+        <CreateRoutineManualModal
+          onClose={() => setShowManualModal(false)}
+          onCreated={(routine) => {
+            setRoutines((prev) => [routine, ...prev]);
+            setShowManualModal(false);
           }}
         />
       )}

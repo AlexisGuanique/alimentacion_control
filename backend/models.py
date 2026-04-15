@@ -271,6 +271,17 @@ class RoutineRead(SQLModel):
     created_at: datetime
 
 
+class RoutineManualCreate(SQLModel):
+    name: str
+    goal: str
+    description: Optional[str] = None
+    duration_weeks: int = 4
+    days_per_week: int = 3
+    fitness_level: str = "Intermedio"
+    equipment: str = "Gimnasio completo"
+    content_json: str
+
+
 class RoutineUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -309,6 +320,16 @@ class MealPlanRead(SQLModel):
     dietary_restrictions: str
     content_json: str
     created_at: datetime
+
+
+class MealPlanManualCreate(SQLModel):
+    name: str
+    goal: str
+    days: int = 7
+    calorie_target: Optional[float] = None
+    dietary_restrictions: str = "Ninguna"
+    description: Optional[str] = None
+    content_json: str
 
 
 class MealPlanUpdate(SQLModel):

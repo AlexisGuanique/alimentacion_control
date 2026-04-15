@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import GenerateMealPlanModal from "@/components/GenerateMealPlanModal";
 import EditMealPlanModal from "@/components/EditMealPlanModal";
+import CreateMealPlanManualModal from "@/components/CreateMealPlanManualModal";
 import {
   getMealPlans,
   deleteMealPlan,
@@ -498,6 +499,7 @@ export default function MealPlansPage() {
   const [plans, setPlans] = useState<MealPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showGenerate, setShowGenerate] = useState(false);
+  const [showManual, setShowManual] = useState(false);
   const [editTarget, setEditTarget] = useState<MealPlan | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [dailyCalories, setDailyCalories] = useState<number | null>(null);
@@ -520,6 +522,7 @@ export default function MealPlansPage() {
   function handleGenerated(plan: MealPlan) {
     setPlans((prev) => [plan, ...prev]);
     setShowGenerate(false);
+    setShowManual(false);
   }
 
   function handleUpdated(updated: MealPlan) {
@@ -542,12 +545,20 @@ export default function MealPlansPage() {
             <h1 className="text-white text-2xl font-bold">Plan de Comidas</h1>
             <p className="text-gray-400 text-sm mt-1">Planes de alimentación generados con IA</p>
           </div>
-          <button
-            onClick={() => setShowGenerate(true)}
-            className="px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
-          >
-            ✨ Generar con IA
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowManual(true)}
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-gray-300 text-sm font-medium rounded-xl border border-white/20 transition-colors"
+            >
+              Crear manualmente
+            </button>
+            <button
+              onClick={() => setShowGenerate(true)}
+              className="px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
+            >
+              ✨ Generar con IA
+            </button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -583,12 +594,20 @@ export default function MealPlansPage() {
             <p className="text-gray-400 text-sm max-w-sm mx-auto">
               Genera tu primer plan nutricional personalizado con IA. Incluye comidas, porciones en gramos y lista de compras.
             </p>
-            <button
-              onClick={() => setShowGenerate(true)}
-              className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
-            >
-              ✨ Generar mi primer plan
-            </button>
+            <div className="flex items-center gap-3 justify-center flex-wrap">
+              <button
+                onClick={() => setShowGenerate(true)}
+                className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-colors"
+              >
+                ✨ Generar con IA
+              </button>
+              <button
+                onClick={() => setShowManual(true)}
+                className="px-6 py-3 bg-white/10 hover:bg-white/15 text-gray-300 font-medium rounded-xl border border-white/20 transition-colors"
+              >
+                Crear manualmente
+              </button>
+            </div>
           </div>
         )}
 
@@ -602,6 +621,14 @@ export default function MealPlansPage() {
           />
         ))}
       </div>
+
+      {/* Manual create modal */}
+      {showManual && (
+        <CreateMealPlanManualModal
+          onClose={() => setShowManual(false)}
+          onCreated={handleGenerated}
+        />
+      )}
 
       {/* Generate modal */}
       {showGenerate && (

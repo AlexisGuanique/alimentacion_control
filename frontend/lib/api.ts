@@ -533,6 +533,47 @@ export interface MealPlanCreateRequest {
   extra_notes?: string;
 }
 
+export interface MealPlanManualCreateRequest {
+  name: string;
+  goal: string;
+  days: number;
+  calorie_target?: number;
+  dietary_restrictions: string;
+  description?: string;
+  content_json: string;
+}
+
+export interface RoutineManualCreateRequest {
+  name: string;
+  goal: string;
+  description?: string;
+  duration_weeks: number;
+  days_per_week: number;
+  fitness_level: string;
+  equipment: string;
+  content_json: string;
+}
+
+export async function createMealPlanManual(data: MealPlanManualCreateRequest): Promise<MealPlan> {
+  const res = await fetch(`${API_URL}/meal-plans`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al crear el plan");
+  return res.json();
+}
+
+export async function createRoutineManual(data: RoutineManualCreateRequest): Promise<Routine> {
+  const res = await fetch(`${API_URL}/routines`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al crear la rutina");
+  return res.json();
+}
+
 export async function generateMealPlan(data: MealPlanCreateRequest): Promise<MealPlan> {
   const res = await fetch(`${API_URL}/meal-plans/ai`, {
     method: "POST",
