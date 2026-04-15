@@ -29,6 +29,9 @@ from models import (
     MealUpdate,
     MealSource,
     PasswordChange,
+    Routine,
+    RoutineCreate,
+    RoutineRead,
     Token,
     User,
     UserCreate,
@@ -652,6 +655,85 @@ def delete_weight(
     if not entry or entry.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Registro de peso no encontrado.")
     session.delete(entry)
+    session.commit()
+
+
+# ─── Rutinas ─────────────────────────────────────────────────────────────────
+
+
+@app.post("/routines/ai", response_model=RoutineRead, status_code=status.HTTP_201_CREATED)
+async def create_routine_ai(
+    routine_in: RoutineCreate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    import json as _json
+    result = await nutritionist_ai.generate_routine(
+        goal=routine_in.goal,
+        duration_weeks=routine_in.duration_weeks,
+        days_per_week=routine_in.days_per_week,
+        fitness_level=routine_in.fitness_level,
+        equipment=routine_in.equipment,
+        weight_kg=current_user.weight_kg or 75.0,
+        height_cm=current_user.height_cm or 170.0,
+        age=current_user.age or 30,
+        gender=current_user.gender or "Masculino",
+        extra_notes=routine_in.extra_notes or "",
+    )
+    if not result:
+        raise HTTPException(status_code=422, detail="No se pudo generar la rutina. Intenta de nuevo.")
+
+    routine = Routine(
+        user_id=current_user.id,
+        name=result.get("name", f"Rutina de {routine_in.goal}"),
+        goal=routine_in.goal,
+        description=result.get("description"),
+        duration_weeks=routine_in.duration_weeks,
+        days_per_week=routine_in.days_per_week,
+        fitness_level=routine_in.fitness_level,
+        equipment=routine_in.equipment,
+        content_json=_json.dumps(result, ensure_ascii=False),
+    )
+    session.add(routine)
+    session.commit()
+    session.refresh(routine)
+    return routine
+
+
+@app.get("/routines", response_model=list[RoutineRead])
+def get_routines(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    return session.exec(
+        select(Routine)
+        .where(Routine.user_id == current_user.id)
+        .order_by(col(Routine.created_at).desc())
+    ).all()
+
+
+@app.get("/routines/{routine_id}", response_model=RoutineRead)
+def get_routine(
+    routine_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    routine = session.get(Routine, routine_id)
+    if not routine or routine.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Rutina no encontrada.")
+    return routine
+
+
+@app.delete("/routines/{routine_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_routine(
+    routine_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    routine = session.get(Routine, routine_id)
+    if not routine or routine.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Rutina no encontrada.")
+    session.delete(routine)
     session.commit()
 
 

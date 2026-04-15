@@ -383,3 +383,81 @@ export async function calculateGoal(data: {
   if (!res.ok) throw new Error("Error al calcular objetivo");
   return res.json();
 }
+
+// ─── Rutinas ──────────────────────────────────────────────────────────────────
+
+export interface RoutineExercise {
+  name: string;
+  sets: number;
+  reps: string;
+  weight_suggestion: string;
+  rest_seconds: number;
+  intensity: string;
+  technique_tip: string;
+  muscle_group: string;
+}
+
+export interface RoutineDay {
+  day_number: number;
+  day_name: string;
+  focus: string;
+  warmup: string;
+  exercises: RoutineExercise[];
+  cooldown: string;
+}
+
+export interface RoutineContent {
+  name: string;
+  description: string;
+  days: RoutineDay[];
+  progression_notes: string;
+  nutrition_tips: string;
+  rest_days: string;
+}
+
+export interface Routine {
+  id: number;
+  user_id: string;
+  name: string;
+  goal: string;
+  description: string | null;
+  duration_weeks: number;
+  days_per_week: number;
+  fitness_level: string;
+  equipment: string;
+  content_json: string;
+  created_at: string;
+}
+
+export interface RoutineCreateRequest {
+  goal: string;
+  duration_weeks: number;
+  days_per_week: number;
+  fitness_level: string;
+  equipment: string;
+  extra_notes?: string;
+}
+
+export async function generateRoutine(data: RoutineCreateRequest): Promise<Routine> {
+  const res = await fetch(`${API_URL}/routines/ai`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al generar rutina");
+  return res.json();
+}
+
+export async function getRoutines(): Promise<Routine[]> {
+  const res = await fetch(`${API_URL}/routines`, { headers: authHeaders() });
+  if (!res.ok) throw new Error("Error al obtener rutinas");
+  return res.json();
+}
+
+export async function deleteRoutine(id: number): Promise<void> {
+  const res = await fetch(`${API_URL}/routines/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error al eliminar rutina");
+}

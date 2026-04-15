@@ -234,6 +234,43 @@ class WeightEntryRead(SQLModel):
     created_at: datetime
 
 
+class Routine(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(foreign_key="user.id", index=True)
+    name: str
+    goal: str
+    description: Optional[str] = Field(default=None)
+    duration_weeks: int = Field(default=4)
+    days_per_week: int = Field(default=3)
+    fitness_level: str = Field(default="Intermedio")
+    equipment: str = Field(default="Gimnasio completo")
+    content_json: str  # Rutina completa serializada como JSON
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class RoutineCreate(SQLModel):
+    goal: str
+    duration_weeks: int = 8
+    days_per_week: int = 4
+    fitness_level: str = "Intermedio"
+    equipment: str = "Gimnasio completo"
+    extra_notes: Optional[str] = None
+
+
+class RoutineRead(SQLModel):
+    id: int
+    user_id: str
+    name: str
+    goal: str
+    description: Optional[str]
+    duration_weeks: int
+    days_per_week: int
+    fitness_level: str
+    equipment: str
+    content_json: str
+    created_at: datetime
+
+
 class Token(SQLModel):
     access_token: str
     token_type: str

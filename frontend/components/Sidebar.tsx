@@ -4,13 +4,14 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Apple, Dumbbell, Settings, LogOut,
-  Leaf, Menu, X, ChevronRight,
+  Leaf, Menu, X, ChevronRight, ClipboardList,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Nutrición", href: "/nutrition", icon: Apple },
   { label: "Ejercicios", href: "/workouts", icon: Dumbbell },
+  { label: "Rutinas", href: "/routines", icon: ClipboardList },
   { label: "Configuración", href: "/settings", icon: Settings },
 ];
 

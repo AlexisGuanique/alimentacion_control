@@ -128,17 +128,20 @@ class NutritionistAI:
             self.chat_chain = None
             self.goal_chain = None
             self.workout_chain = None
+            self.routine_chain = None
             return
 
         meal_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.2)
         chat_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.7)
         goal_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.3)
         workout_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.2)
+        routine_model = ChatGoogleGenerativeAI(model=MODEL_NAME, temperature=0.4)
 
         self.meal_chain = MEAL_PROMPT | meal_model
         self.chat_chain = CHAT_PROMPT | chat_model
         self.goal_chain = GOAL_PROMPT | goal_model
         self.workout_chain = WORKOUT_PROMPT | workout_model
+        self.routine_chain = ROUTINE_PROMPT | routine_model
 
     def _extract_text(self, content) -> str:
         if isinstance(content, str):
@@ -246,6 +249,106 @@ class NutritionistAI:
         except Exception as exc:
             logger.error("Error en analyze_workout: %s", exc)
             return None
+
+
+    async def generate_routine(
+        self,
+        goal: str,
+        duration_weeks: int,
+        days_per_week: int,
+        fitness_level: str,
+        equipment: str,
+        weight_kg: float = 75.0,
+        height_cm: float = 170.0,
+        age: int = 30,
+        gender: str = "Masculino",
+        extra_notes: str = "",
+    ) -> Optional[dict]:
+        if not self.routine_chain:
+            return None
+        try:
+            response = await self.routine_chain.ainvoke({
+                "goal": goal,
+                "duration_weeks": duration_weeks,
+                "days_per_week": days_per_week,
+                "fitness_level": fitness_level,
+                "equipment": equipment,
+                "weight_kg": weight_kg,
+                "height_cm": height_cm,
+                "age": age,
+                "gender": gender,
+                "extra_notes": extra_notes or "Sin notas adicionales",
+            })
+            raw = self._extract_text(response.content)
+            cleaned = re.sub(r"```(?:json)?|```", "", raw).strip()
+            return json.loads(cleaned)
+        except Exception as exc:
+            logger.error("Error en generate_routine: %s", exc)
+            return None
+
+
+ROUTINE_PROMPT = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """Eres un entrenador personal de élite con más de 20 años de experiencia diseñando programas de entrenamiento personalizados.
+Tu tarea es crear una rutina de ejercicios COMPLETA, DETALLADA y PROGRESIVA basada en el perfil del usuario.
+
+Devuelve EXCLUSIVAMENTE un JSON válido con esta estructura exacta (sin texto adicional, sin markdown):
+{{
+  "name": "Nombre descriptivo de la rutina",
+  "description": "Descripción del programa en 2-3 oraciones, explicando la metodología y beneficios esperados.",
+  "days": [
+    {{
+      "day_number": 1,
+      "day_name": "Lunes",
+      "focus": "Pecho y Tríceps",
+      "warmup": "5 min de cardio suave + movilidad de hombros",
+      "exercises": [
+        {{
+          "name": "Press de Banca con Barra",
+          "sets": 4,
+          "reps": "8-10",
+          "weight_suggestion": "70-80% de tu 1RM",
+          "rest_seconds": 90,
+          "intensity": "Alta",
+          "technique_tip": "Baja controlado en 3 segundos, explosivo en la subida",
+          "muscle_group": "Pecho"
+        }}
+      ],
+      "cooldown": "5 min de estiramientos de pecho y tríceps"
+    }}
+  ],
+  "progression_notes": "Instrucciones de progresión para las semanas siguientes",
+  "nutrition_tips": "2-3 consejos nutricionales específicos para este objetivo",
+  "rest_days": "Instrucciones sobre los días de descanso y recuperación"
+}}
+
+REGLAS IMPORTANTES:
+- Incluye TODOS los días de entrenamiento especificados (days_per_week días)
+- Para cada ejercicio incluye: nombre, series, repeticiones/tiempo, sugerencia de peso, descanso, intensidad, consejo de técnica y grupo muscular
+- Los ejercicios deben ser apropiados para el nivel de fitness indicado
+- Adapta el equipamiento disponible
+- La rutina debe ser PROGRESIVA y bien periodizada
+- Incluye calentamiento y enfriamiento para cada día
+- Para Cardio/Resistencia: incluye duración en lugar de reps
+- Para Fuerza: incluye series pesadas con menores repeticiones
+- Asegúrate de balancear los grupos musculares a lo largo de la semana""",
+    ),
+    (
+        "human",
+        """Genera una rutina de entrenamiento personalizada con estos parámetros:
+
+Objetivo principal: {goal}
+Duración del programa: {duration_weeks} semanas
+Días de entrenamiento por semana: {days_per_week}
+Nivel de fitness: {fitness_level}
+Equipamiento disponible: {equipment}
+Datos del usuario: Peso {weight_kg} kg, Altura {height_cm} cm, Edad {age} años, Género: {gender}
+Notas adicionales: {extra_notes}
+
+Crea una rutina completa, detallada y profesional.""",
+    ),
+])
 
 
 nutritionist_ai = NutritionistAI()
