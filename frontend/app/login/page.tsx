@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login, register } from "@/lib/api";
-import { Leaf, Mail, Lock, User, AlertCircle } from "lucide-react";
+import { Leaf, Mail, Lock, User, AlertCircle, Clock } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pendingApproval, setPendingApproval] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -38,12 +39,16 @@ export default function LoginPage() {
           password: form.password,
           full_name: form.full_name,
         });
-        const token = await login(form.email, form.password);
-        localStorage.setItem("nutritrack_token", token);
-        router.push("/dashboard");
+        // Registro exitoso → mostrar mensaje de aprobación pendiente
+        setPendingApproval(true);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Ocurrió un error");
+      const msg = err instanceof Error ? err.message : "Ocurrió un error";
+      if (msg.includes("pendiente de aprobación") || msg.includes("pendiente")) {
+        setPendingApproval(true);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -63,6 +68,30 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+
+          {/* Pantalla de aprobación pendiente */}
+          {pendingApproval && (
+            <div className="text-center space-y-4 py-4">
+              <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto">
+                <Clock className="w-8 h-8 text-amber-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Cuenta pendiente de aprobación</h2>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Tu cuenta fue creada correctamente. El administrador revisará tu solicitud y recibirás un correo electrónico cuando sea aprobada.
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-700 text-sm">
+                ⏳ Espera la aprobación para poder iniciar sesión.
+              </div>
+              <button
+                onClick={() => { setPendingApproval(false); setMode("login"); }}
+                className="text-sm text-primary hover:underline"
+              >
+                ← Volver al inicio de sesión
+              </button>
+            </div>
+          )}
+
+          {!pendingApproval && (<>
           {/* Tabs */}
           <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
             {(["login", "register"] as const).map((m) => (
@@ -144,6 +173,7 @@ export default function LoginPage() {
                 : "Crear Cuenta"}
             </button>
           </form>
+          </>)}
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">

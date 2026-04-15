@@ -47,7 +47,7 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     password_hash: str
-    is_active: bool = Field(default=True)
+    is_active: bool = Field(default=False)  # requiere aprobación del admin
     created_at: datetime = Field(default_factory=datetime.utcnow)
     # Perfil físico
     height_cm: Optional[float] = Field(default=None)

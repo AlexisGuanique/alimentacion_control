@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import date, datetime, timedelta
 from typing import Optional
 
@@ -7,8 +8,18 @@ load_dotenv()
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, col, func, select
+
+from email_service import (
+    make_activation_token,
+    verify_activation_token,
+    send_new_user_notification,
+    send_account_activated_email,
+)
+
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "nutritrack-admin-secret")
 
 from ai_service import nutritionist_ai
 from auth import (
@@ -94,10 +105,16 @@ def register(user_in: UserCreate, session: Session = Depends(get_session)):
         email=user_in.email,
         full_name=user_in.full_name,
         password_hash=hash_password(user_in.password),
+        is_active=False,  # requiere aprobación del admin
     )
     session.add(user)
     session.commit()
     session.refresh(user)
+    # Notificar al admin (en background, no bloquea la respuesta)
+    try:
+        send_new_user_notification(user.id, user.email, user.full_name)
+    except Exception as exc:
+        logger.error("Error enviando notificación de registro: %s", exc)
     return user
 
 
@@ -112,6 +129,11 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos.",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta está pendiente de aprobación. Recibirás un correo cuando sea activada.",
         )
     access_token = create_access_token(data={"sub": user.id})
     return Token(access_token=access_token, token_type="bearer")
@@ -904,3 +926,118 @@ async def chat(
     return {"response": response}
 
 
+# ─── Admin ────────────────────────────────────────────────────────────────────
+
+def _check_admin(secret: str):
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Acceso no autorizado.")
+
+
+@app.get("/admin/activate/{token}", response_class=HTMLResponse, include_in_schema=False)
+def activate_user(token: str, session: Session = Depends(get_session)):
+    """Link de activación enviado por email. Activa el usuario y retorna HTML."""
+    user_id = verify_activation_token(token)
+    if not user_id:
+        return HTMLResponse(_html_result("error", "Token inválido o expirado", "El enlace de activación no es válido."), status_code=400)
+
+    user = session.get(User, user_id)
+    if not user:
+        return HTMLResponse(_html_result("error", "Usuario no encontrado", "No existe un usuario con ese ID."), status_code=404)
+
+    if user.is_active:
+        return HTMLResponse(_html_result("info", "Ya estaba activo", f"La cuenta de <strong>{user.full_name}</strong> ({user.email}) ya estaba activa."))
+
+    user.is_active = True
+    session.add(user)
+    session.commit()
+
+    # Notificar al usuario que su cuenta fue activada
+    try:
+        send_account_activated_email(user.email, user.full_name)
+    except Exception as exc:
+        logger.error("Error enviando email de activación al usuario: %s", exc)
+
+    return HTMLResponse(_html_result(
+        "success",
+        "¡Usuario activado!",
+        f"La cuenta de <strong>{user.full_name}</strong> ({user.email}) ha sido activada correctamente. "
+        f"El usuario ya puede iniciar sesión en NutriTrack IA.",
+    ))
+
+
+@app.get("/admin/users", include_in_schema=False)
+def list_users(secret: str = "", session: Session = Depends(get_session)):
+    """Lista todos los usuarios. Protegido con ?secret=ADMIN_SECRET."""
+    _check_admin(secret)
+    users = session.exec(select(User).order_by(col(User.created_at).desc())).all()
+    return [
+        {
+            "id": u.id,
+            "full_name": u.full_name,
+            "email": u.email,
+            "is_active": u.is_active,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+        }
+        for u in users
+    ]
+
+
+@app.patch("/admin/users/{user_id}/activate", include_in_schema=False)
+def admin_activate_user(user_id: str, secret: str = "", session: Session = Depends(get_session)):
+    _check_admin(secret)
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    user.is_active = True
+    session.add(user)
+    session.commit()
+    try:
+        send_account_activated_email(user.email, user.full_name)
+    except Exception as exc:
+        logger.error("Error enviando email de activación: %s", exc)
+    return {"ok": True, "message": f"Usuario {user.email} activado."}
+
+
+@app.patch("/admin/users/{user_id}/deactivate", include_in_schema=False)
+def admin_deactivate_user(user_id: str, secret: str = "", session: Session = Depends(get_session)):
+    _check_admin(secret)
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    user.is_active = False
+    session.add(user)
+    session.commit()
+    return {"ok": True, "message": f"Usuario {user.email} desactivado."}
+
+
+def _html_result(kind: str, title: str, body: str) -> str:
+    colors = {
+        "success": ("#16a34a", "#dcfce7", "✅"),
+        "error":   ("#dc2626", "#fee2e2", "❌"),
+        "info":    ("#2563eb", "#dbeafe", "ℹ️"),
+    }
+    color, bg, icon = colors.get(kind, colors["info"])
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NutriTrack IA — Admin</title>
+  <style>
+    body {{margin:0;padding:0;background:#f3f4f6;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;}}
+    .card {{background:#fff;border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.1);padding:40px 48px;max-width:480px;width:90%;text-align:center;}}
+    .icon {{font-size:56px;margin-bottom:16px;}}
+    h1 {{margin:0 0 12px;color:{color};font-size:24px;}}
+    p {{color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;}}
+    .badge {{display:inline-block;background:{bg};color:{color};padding:6px 16px;border-radius:99px;font-size:13px;font-weight:600;}}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">{icon}</div>
+    <h1>{title}</h1>
+    <p>{body}</p>
+    <span class="badge">NutriTrack IA · Admin</span>
+  </div>
+</body>
+</html>"""

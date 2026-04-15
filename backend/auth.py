@@ -63,6 +63,11 @@ async def get_current_user(
         raise credentials_exception
 
     user = session.get(User, token_data.user_id)
-    if user is None or not user.is_active:
+    if user is None:
         raise credentials_exception
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta está pendiente de aprobación. Recibirás un correo cuando sea activada.",
+        )
     return user
