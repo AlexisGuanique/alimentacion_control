@@ -100,9 +100,13 @@ export async function getMeals(since?: string, until?: string): Promise<Meal[]> 
 }
 
 export async function createMealManual(meal: {
+  name?: string;
   description: string;
   calories: number;
   category: string;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
   source?: string;
   recorded_at?: string;
 }): Promise<Meal> {
