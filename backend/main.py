@@ -32,6 +32,7 @@ from models import (
     Routine,
     RoutineCreate,
     RoutineRead,
+    RoutineUpdate,
     Token,
     User,
     UserCreate,
@@ -721,6 +722,25 @@ def get_routine(
     routine = session.get(Routine, routine_id)
     if not routine or routine.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Rutina no encontrada.")
+    return routine
+
+
+@app.patch("/routines/{routine_id}", response_model=RoutineRead)
+def update_routine(
+    routine_id: int,
+    routine_in: RoutineUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    routine = session.get(Routine, routine_id)
+    if not routine or routine.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Rutina no encontrada.")
+    data = routine_in.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(routine, field, value)
+    session.add(routine)
+    session.commit()
+    session.refresh(routine)
     return routine
 
 

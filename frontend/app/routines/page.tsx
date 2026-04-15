@@ -5,17 +5,60 @@ import { useRouter } from "next/navigation";
 import {
   Sparkles, ClipboardList, Trash2, ChevronDown, ChevronUp,
   Clock, Calendar, Dumbbell, Target, Zap, Timer, Weight,
-  RefreshCw, Info,
+  RefreshCw, Info, Pencil, CheckCircle2,
 } from "lucide-react";
 
 import {
-  getRoutines, deleteRoutine, getMe,
-  Routine, RoutineContent, RoutineDay,
-  User,
+  getRoutines, deleteRoutine, updateRoutine, createWorkout, getMe,
+  Routine, RoutineContent, RoutineDay, User,
 } from "@/lib/api";
 import AppLayout from "@/components/AppLayout";
 import GenerateRoutineModal from "@/components/GenerateRoutineModal";
+import EditRoutineModal from "@/components/EditRoutineModal";
 import ConfirmModal from "@/components/ConfirmModal";
+
+// ── Markdown renderer (convierte **bold** y listas - en JSX) ─────────────────
+
+function MarkdownText({ text }: { text: string }) {
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+  let listItems: string[] = [];
+  let key = 0;
+
+  const boldify = (str: string) =>
+    str.split(/(\*\*.*?\*\*)/).map((part, i) =>
+      part.startsWith("**") && part.endsWith("**")
+        ? <strong key={i} className="font-semibold text-gray-800">{part.slice(2, -2)}</strong>
+        : part
+    );
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    elements.push(
+      <ul key={key++} className="list-disc pl-5 space-y-1 my-2">
+        {listItems.map((item, i) => (
+          <li key={i} className="text-sm text-gray-600 leading-relaxed">{boldify(item)}</li>
+        ))}
+      </ul>
+    );
+    listItems = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) { flushList(); continue; }
+    if (trimmed.startsWith("- ")) {
+      listItems.push(trimmed.slice(2));
+    } else {
+      flushList();
+      elements.push(
+        <p key={key++} className="text-sm text-gray-600 leading-relaxed">{boldify(trimmed)}</p>
+      );
+    }
+  }
+  flushList();
+  return <div className="space-y-1">{elements}</div>;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -48,12 +91,19 @@ const INTENSITY_COLOR: Record<string, string> = {
   Moderada: "bg-blue-100 text-blue-700",
 };
 
+function detectWorkoutType(focus: string): string {
+  const f = focus.toLowerCase();
+  if (f.includes("cardio") || f.includes("carrera")) return "Cardio";
+  if (f.includes("hiit")) return "HIIT";
+  if (f.includes("flexib") || f.includes("movilidad") || f.includes("yoga")) return "Flexibilidad";
+  if (f.includes("natación") || f.includes("natacion")) return "Natación";
+  if (f.includes("ciclismo") || f.includes("bicicleta")) return "Ciclismo";
+  if (f.includes("caminata") || f.includes("caminar")) return "Caminata";
+  return "Fuerza";
+}
+
 function parseContent(routine: Routine): RoutineContent | null {
-  try {
-    return JSON.parse(routine.content_json);
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(routine.content_json); } catch { return null; }
 }
 
 function formatDate(iso: string) {
@@ -62,9 +112,173 @@ function formatDate(iso: string) {
   });
 }
 
-// ── Componente: detalle de un día ─────────────────────────────────────────────
+// ── MarkDoneModal ─────────────────────────────────────────────────────────────
 
-function DayDetail({ day }: { day: RoutineDay }) {
+function MarkDoneModal({
+  routine, day, onClose, onDone,
+}: {
+  routine: Routine;
+  day: RoutineDay;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [duration, setDuration] = useState(60);
+  const [calories, setCalories] = useState(350);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const workoutType = detectWorkoutType(day.focus);
+      await createWorkout({
+        workout_type: workoutType,
+        duration_minutes: duration,
+        calories_burned: calories,
+        notes: `${routine.name} — ${day.day_name}: ${day.focus}`,
+        details_json: JSON.stringify({
+          exercises: day.exercises.map((ex) => ({
+            name: ex.name,
+            sets: ex.sets,
+            reps: ex.reps,
+            weight_suggestion: ex.weight_suggestion,
+            muscle_group: ex.muscle_group,
+          })),
+          routine_focus: day.focus,
+          from_routine: true,
+        }),
+      });
+      onDone();
+    } catch {
+      setError("No se pudo registrar el entrenamiento. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm">Marcar día como realizado</h3>
+              <p className="text-xs text-gray-400">{day.day_name} — {day.focus}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Resumen de ejercicios */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+              {day.exercises.length} ejercicios
+            </p>
+            <div className="space-y-1">
+              {day.exercises.slice(0, 5).map((ex, i) => (
+                <div key={i} className="flex items-center justify-between text-xs text-gray-600">
+                  <span className="truncate">{ex.name}</span>
+                  <span className="flex-shrink-0 ml-2 text-gray-400">{ex.sets} × {ex.reps}</span>
+                </div>
+              ))}
+              {day.exercises.length > 5 && (
+                <p className="text-xs text-gray-400">+{day.exercises.length - 5} más...</p>
+              )}
+            </div>
+          </div>
+
+          {/* Duración y calorías */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
+                <Timer className="w-3.5 h-3.5 inline mr-1 text-purple-400" />
+                Duración (min)
+              </label>
+              <input
+                type="number"
+                min={10}
+                max={300}
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
+                <Zap className="w-3.5 h-3.5 inline mr-1 text-orange-400" />
+                Kcal quemadas
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={calories}
+                onChange={(e) => setCalories(Number(e.target.value))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-400 text-center">
+            El entrenamiento se agregará a tu historial de Ejercicios de hoy.
+          </p>
+
+          {error && <p className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</p>}
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-[2] py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              {loading ? "Registrando..." : "Registrar entrenamiento"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── InfoRow con markdown ──────────────────────────────────────────────────────
+
+function InfoRow({ icon, label, text }: { icon: string; label: string; text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-gray-100 last:border-0">
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition-all"
+      >
+        <span>{icon}</span>
+        <span className="text-sm font-medium text-gray-800 flex-1 text-left">{label}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          <MarkdownText text={text} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── DayDetail ────────────────────────────────────────────────────────────────
+
+function DayDetail({ day, routine, onDone }: { day: RoutineDay; routine: Routine; onDone: () => void }) {
+  const [showMarkDone, setShowMarkDone] = useState(false);
+
   return (
     <div className="space-y-3">
       {day.warmup && (
@@ -77,7 +291,6 @@ function DayDetail({ day }: { day: RoutineDay }) {
         </div>
       )}
 
-      {/* Ejercicios */}
       <div className="space-y-2">
         {day.exercises.map((ex, i) => (
           <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
@@ -94,8 +307,6 @@ function DayDetail({ day }: { day: RoutineDay }) {
                 </span>
               )}
             </div>
-
-            {/* Stats row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
               {ex.sets && (
                 <div className="flex items-center gap-1.5 text-xs text-gray-600">
@@ -112,7 +323,7 @@ function DayDetail({ day }: { day: RoutineDay }) {
               {ex.rest_seconds && (
                 <div className="flex items-center gap-1.5 text-xs text-gray-600">
                   <Timer className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                  <span><span className="font-semibold">{ex.rest_seconds}s</span> descanso</span>
+                  <span><span className="font-semibold">{ex.rest_seconds}s</span> desc.</span>
                 </div>
               )}
               {ex.weight_suggestion && (
@@ -122,13 +333,11 @@ function DayDetail({ day }: { day: RoutineDay }) {
                 </div>
               )}
             </div>
-
             {ex.muscle_group && (
               <span className="inline-block text-xs px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full font-medium mb-1.5">
                 {ex.muscle_group}
               </span>
             )}
-
             {ex.technique_tip && (
               <div className="flex gap-1.5 mt-1">
                 <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -148,28 +357,56 @@ function DayDetail({ day }: { day: RoutineDay }) {
           </div>
         </div>
       )}
+
+      {/* Botón marcar como realizado */}
+      <button
+        onClick={() => setShowMarkDone(true)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm font-semibold hover:bg-green-100 transition-all"
+      >
+        <CheckCircle2 className="w-4 h-4" />
+        Marcar día como realizado
+      </button>
+
+      {showMarkDone && (
+        <MarkDoneModal
+          routine={routine}
+          day={day}
+          onClose={() => setShowMarkDone(false)}
+          onDone={() => { setShowMarkDone(false); onDone(); }}
+        />
+      )}
     </div>
   );
 }
 
-// ── Componente: tarjeta de rutina ─────────────────────────────────────────────
+// ── RoutineCard ───────────────────────────────────────────────────────────────
 
 function RoutineCard({
   routine,
   onDelete,
+  onEdit,
+  onUpdate,
 }: {
   routine: Routine;
   onDelete: (id: number) => void;
+  onEdit: (r: Routine) => void;
+  onUpdate: (updated: Routine) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [activeDay, setActiveDay] = useState(0);
+  const [doneFeedback, setDoneFeedback] = useState(false);
   const content = parseContent(routine);
   const gradient = GOAL_COLOR[routine.goal] || "from-blue-500 to-indigo-600";
   const emoji = GOAL_EMOJI[routine.goal] || "💪";
 
+  const handleDone = () => {
+    setDoneFeedback(true);
+    setTimeout(() => setDoneFeedback(false), 3000);
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Card header gradient */}
+      {/* Card header */}
       <div className={`bg-gradient-to-r ${gradient} p-5 text-white`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -182,48 +419,55 @@ function RoutineCard({
               <p className="text-sm text-white/80 mt-1 line-clamp-2">{routine.description}</p>
             )}
           </div>
-          <button
-            onClick={() => onDelete(routine.id)}
-            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex-shrink-0"
-          >
-            <Trash2 className="w-4 h-4 text-white" />
-          </button>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              onClick={() => onEdit(routine)}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all"
+              title="Editar rutina"
+            >
+              <Pencil className="w-4 h-4 text-white" />
+            </button>
+            <button
+              onClick={() => onDelete(routine.id)}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all"
+              title="Eliminar rutina"
+            >
+              <Trash2 className="w-4 h-4 text-white" />
+            </button>
+          </div>
         </div>
-
-        {/* Meta pills */}
         <div className="flex flex-wrap gap-2 mt-3">
-          <span className="flex items-center gap-1 text-xs bg-white/20 px-2.5 py-1 rounded-full">
-            <Calendar className="w-3 h-3" /> {routine.duration_weeks} semanas
-          </span>
-          <span className="flex items-center gap-1 text-xs bg-white/20 px-2.5 py-1 rounded-full">
-            <Dumbbell className="w-3 h-3" /> {routine.days_per_week} días/sem
-          </span>
-          <span className="flex items-center gap-1 text-xs bg-white/20 px-2.5 py-1 rounded-full">
-            <Zap className="w-3 h-3" /> {routine.fitness_level}
-          </span>
-          <span className="flex items-center gap-1 text-xs bg-white/20 px-2.5 py-1 rounded-full">
-            <Clock className="w-3 h-3" /> {formatDate(routine.created_at)}
-          </span>
+          {[
+            { icon: Calendar, label: `${routine.duration_weeks} semanas` },
+            { icon: Dumbbell, label: `${routine.days_per_week} días/sem` },
+            { icon: Zap, label: routine.fitness_level },
+            { icon: Clock, label: formatDate(routine.created_at) },
+          ].map(({ icon: Icon, label }) => (
+            <span key={label} className="flex items-center gap-1 text-xs bg-white/20 px-2.5 py-1 rounded-full">
+              <Icon className="w-3 h-3" /> {label}
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Expand button */}
+      {doneFeedback && (
+        <div className="flex items-center gap-2 px-5 py-3 bg-green-50 border-b border-green-100">
+          <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+          <p className="text-sm font-medium text-green-700">¡Entrenamiento registrado! Revísalo en Ejercicios.</p>
+        </div>
+      )}
+
       <button
         onClick={() => setExpanded((p) => !p)}
         className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all border-b border-gray-100"
       >
-        {expanded ? (
-          <><ChevronUp className="w-4 h-4" /> Ocultar rutina</>
-        ) : (
-          <><ChevronDown className="w-4 h-4" /> Ver rutina completa</>
-        )}
+        {expanded ? <><ChevronUp className="w-4 h-4" /> Ocultar rutina</> : <><ChevronDown className="w-4 h-4" /> Ver rutina completa</>}
       </button>
 
-      {/* Expanded content */}
       {expanded && content && (
         <div className="p-5 space-y-4">
           {/* Day tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
             {content.days.map((day, i) => (
               <button
                 key={i}
@@ -240,7 +484,6 @@ function RoutineCard({
             ))}
           </div>
 
-          {/* Active day header */}
           {content.days[activeDay] && (
             <>
               <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
@@ -252,46 +495,21 @@ function RoutineCard({
                   {content.days[activeDay].exercises.length} ejercicios
                 </span>
               </div>
-
-              <DayDetail day={content.days[activeDay]} />
+              <DayDetail
+                day={content.days[activeDay]}
+                routine={routine}
+                onDone={handleDone}
+              />
             </>
           )}
 
-          {/* Extra info accordion */}
           {(content.progression_notes || content.nutrition_tips || content.rest_days) && (
             <div className="border border-gray-100 rounded-xl overflow-hidden">
-              {content.progression_notes && (
-                <InfoRow icon="📈" label="Progresión" text={content.progression_notes} />
-              )}
-              {content.nutrition_tips && (
-                <InfoRow icon="🥗" label="Nutrición" text={content.nutrition_tips} />
-              )}
-              {content.rest_days && (
-                <InfoRow icon="😴" label="Descanso" text={content.rest_days} />
-              )}
+              {content.progression_notes && <InfoRow icon="📈" label="Progresión" text={content.progression_notes} />}
+              {content.nutrition_tips && <InfoRow icon="🥗" label="Nutrición" text={content.nutrition_tips} />}
+              {content.rest_days && <InfoRow icon="😴" label="Descanso" text={content.rest_days} />}
             </div>
           )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InfoRow({ icon, label, text }: { icon: string; label: string; text: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="border-b border-gray-100 last:border-0">
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition-all"
-      >
-        <span>{icon}</span>
-        <span className="text-sm font-medium text-gray-800 flex-1 text-left">{label}</span>
-        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-      </button>
-      {open && (
-        <div className="px-4 pb-3">
-          <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
         </div>
       )}
     </div>
@@ -305,7 +523,8 @@ export default function RoutinesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [editRoutine, setEditRoutine] = useState<Routine | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -338,6 +557,11 @@ export default function RoutinesPage() {
     setConfirmId(null);
   };
 
+  const handleUpdated = (updated: Routine) => {
+    setRoutines((prev) => prev.map((r) => r.id === updated.id ? updated : r));
+    setEditRoutine(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -361,14 +585,13 @@ export default function RoutinesPage() {
             <p className="text-sm text-gray-500 mt-0.5">Rutinas de entrenamiento generadas con IA</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => setShowGenerateModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-sm"
           >
             <Sparkles className="w-4 h-4" /> Generar con IA
           </button>
         </div>
 
-        {/* Content */}
         {routines.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mx-auto mb-4">
@@ -376,18 +599,17 @@ export default function RoutinesPage() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Sin rutinas todavía</h3>
             <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
-              Genera tu primera rutina personalizada con IA indicando tu objetivo y nivel de entrenamiento.
+              Genera tu primera rutina personalizada con IA indicando tu objetivo y nivel.
             </p>
             <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all shadow-sm"
+              onClick={() => setShowGenerateModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all"
             >
               <Sparkles className="w-4 h-4" /> Generar mi primera rutina
             </button>
           </div>
         ) : (
           <>
-            {/* Stats summary */}
             <div className="grid grid-cols-3 gap-4">
               {[
                 { label: "Rutinas", value: routines.length, icon: ClipboardList, color: "text-blue-500", bg: "bg-blue-50" },
@@ -404,13 +626,14 @@ export default function RoutinesPage() {
               ))}
             </div>
 
-            {/* Routine cards */}
             <div className="space-y-4">
               {routines.map((routine) => (
                 <RoutineCard
                   key={routine.id}
                   routine={routine}
                   onDelete={(id) => setConfirmId(id)}
+                  onEdit={(r) => setEditRoutine(r)}
+                  onUpdate={handleUpdated}
                 />
               ))}
             </div>
@@ -418,13 +641,21 @@ export default function RoutinesPage() {
         )}
       </div>
 
-      {showModal && (
+      {showGenerateModal && (
         <GenerateRoutineModal
-          onClose={() => setShowModal(false)}
+          onClose={() => setShowGenerateModal(false)}
           onGenerated={(routine) => {
             setRoutines((prev) => [routine, ...prev]);
-            setShowModal(false);
+            setShowGenerateModal(false);
           }}
+        />
+      )}
+
+      {editRoutine && (
+        <EditRoutineModal
+          routine={editRoutine}
+          onClose={() => setEditRoutine(null)}
+          onUpdated={handleUpdated}
         />
       )}
 

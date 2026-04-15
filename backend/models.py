@@ -271,6 +271,12 @@ class RoutineRead(SQLModel):
     created_at: datetime
 
 
+class RoutineUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    content_json: Optional[str] = None
+
+
 class Token(SQLModel):
     access_token: str
     token_type: str

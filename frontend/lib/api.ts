@@ -454,6 +454,19 @@ export async function getRoutines(): Promise<Routine[]> {
   return res.json();
 }
 
+export async function updateRoutine(
+  id: number,
+  data: { name?: string; description?: string; content_json?: string }
+): Promise<Routine> {
+  const res = await fetch(`${API_URL}/routines/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Error al actualizar rutina");
+  return res.json();
+}
+
 export async function deleteRoutine(id: number): Promise<void> {
   const res = await fetch(`${API_URL}/routines/${id}`, {
     method: "DELETE",
