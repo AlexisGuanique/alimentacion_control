@@ -62,23 +62,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
-_ALLOWED_ORIGINS = [
-    # Producción con dominio
-    "https://simplenamed.com",
-    "https://www.simplenamed.com",
-    # Servidor por IP
-    "http://34.29.59.97:3010",
-    "http://34.29.59.97",
-    # Desarrollo local
-    "http://localhost:3000",
-    "http://localhost:3010",
-    "http://127.0.0.1:3000",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
