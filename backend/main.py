@@ -90,6 +90,11 @@ def on_startup() -> None:
     logger.info("Base de datos inicializada correctamente.")
 
 
+@app.get("/health", include_in_schema=False)
+def health_check():
+    return {"status": "ok"}
+
+
 # ─── Auth ────────────────────────────────────────────────────────────────────
 
 
