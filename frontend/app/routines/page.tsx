@@ -689,7 +689,8 @@ export default function RoutinesPage() {
 
       {confirmId !== null && (
         <ConfirmModal
-          message="¿Eliminar esta rutina? Esta acción no se puede deshacer."
+          title="Eliminar rutina"
+          description="¿Eliminar esta rutina? Esta acción no se puede deshacer."
           onConfirm={() => handleDelete(confirmId)}
           onCancel={() => setConfirmId(null)}
         />

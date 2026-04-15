@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AppLayout from "@/components/AppLayout";
 import GenerateMealPlanModal from "@/components/GenerateMealPlanModal";
 import EditMealPlanModal from "@/components/EditMealPlanModal";
 import CreateMealPlanManualModal from "@/components/CreateMealPlanManualModal";
 import {
+  getMe,
   getMealPlans,
   deleteMealPlan,
   createMealManual,
@@ -13,6 +15,7 @@ import {
   MealPlanContent,
   MealPlanMeal,
   MealPlanFood,
+  User,
 } from "@/lib/api";
 import {
   Pencil,
@@ -561,6 +564,8 @@ function PlanCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MealPlansPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [plans, setPlans] = useState<MealPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showGenerate, setShowGenerate] = useState(false);
@@ -569,21 +574,32 @@ export default function MealPlansPage() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [dailyCalories, setDailyCalories] = useState<number | null>(null);
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const plansData = await getMealPlans();
+      const [userData, plansData] = await Promise.all([getMe(), getMealPlans()]);
+      setUser(userData);
       setPlans(plansData);
-      const stored = localStorage.getItem("nt_daily_calories");
-      if (stored) setDailyCalories(Number(stored));
+      if (userData.daily_calories_target) setDailyCalories(userData.daily_calories_target);
+      else {
+        const stored = localStorage.getItem("nt_daily_calories");
+        if (stored) setDailyCalories(Number(stored));
+      }
+    } catch {
+      localStorage.removeItem("nutritrack_token");
+      router.push("/login");
     } finally {
       setLoading(false);
     }
-  }
+  }, [router]);
 
   useEffect(() => {
+    const token = localStorage.getItem("nutritrack_token");
+    if (!token) { router.push("/login"); return; }
     fetchData();
-  }, []);
+  }, [fetchData, router]);
+
+  const handleLogout = () => { localStorage.removeItem("nutritrack_token"); router.push("/login"); };
 
   function handleGenerated(plan: MealPlan) {
     setPlans((prev) => [plan, ...prev]);
@@ -603,7 +619,7 @@ export default function MealPlansPage() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout userName={user?.full_name} userEmail={user?.email} onLogout={handleLogout}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 overflow-x-hidden">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

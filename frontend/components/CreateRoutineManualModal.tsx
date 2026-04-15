@@ -34,6 +34,7 @@ function emptyExercise(): RoutineExercise {
     intensity: "Moderada",
     weight_suggestion: "",
     technique_tip: "",
+    muscle_group: "",
   };
 }
 
@@ -42,7 +43,6 @@ function emptyDay(i: number): RoutineDay {
     day_number: i + 1,
     day_name: `Día ${i + 1}`,
     focus: "",
-    duration_minutes: 60,
     warmup: "5-10 minutos de calentamiento suave.",
     cooldown: "5 minutos de elongación.",
     exercises: [emptyExercise()],
@@ -195,10 +195,11 @@ export default function CreateRoutineManualModal({ onClose, onCreated }: Props) 
     setError("");
     try {
       const content: RoutineContent = {
-        overview: description,
-        progression,
+        name,
+        description,
+        progression_notes: progression,
         nutrition_tips: nutritionTip,
-        rest_tips: restTip,
+        rest_days: restTip,
         days: routineDays,
       };
       const routine = await createRoutineManual({
@@ -347,12 +348,6 @@ export default function CreateRoutineManualModal({ onClose, onCreated }: Props) 
                   <label className="text-gray-400 text-xs block mb-1">Enfoque / Grupo muscular</label>
                   <input value={day.focus || ""} onChange={(e) => updateDay(activeDay, { ...day, focus: e.target.value })}
                     placeholder="Ej: Pecho y tríceps"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-green-500" />
-                </div>
-                <div>
-                  <label className="text-gray-400 text-xs block mb-1">Duración estimada (min)</label>
-                  <input type="number" min={10} value={day.duration_minutes || 60}
-                    onChange={(e) => updateDay(activeDay, { ...day, duration_minutes: Number(e.target.value) })}
                     className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-green-500" />
                 </div>
               </div>
