@@ -10,7 +10,7 @@ import {
 
 import {
   getRoutines, deleteRoutine, updateRoutine, createWorkout, getMe,
-  Routine, RoutineContent, RoutineDay, User,
+  Routine, RoutineContent, RoutineDay, RoutineExercise, User,
 } from "@/lib/api";
 import AppLayout from "@/components/AppLayout";
 import GenerateRoutineModal from "@/components/GenerateRoutineModal";
@@ -275,10 +275,95 @@ function InfoRow({ icon, label, text }: { icon: string; label: string; text: str
   );
 }
 
+// ── ExerciseDetailModal ───────────────────────────────────────────────────────
+
+function ExerciseDetailModal({ ex, index, onClose }: { ex: RoutineExercise; index: number; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">
+              {index + 1}
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-gray-900 font-bold text-sm leading-tight">{ex.name}</h3>
+              {ex.muscle_group && (
+                <span className="text-xs text-indigo-600 font-medium">{ex.muscle_group}</span>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold flex-shrink-0">✕</button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 gap-2">
+            {ex.sets && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+                <p className="text-xl font-bold text-blue-700">{ex.sets}</p>
+                <p className="text-xs text-blue-600 font-medium">Series</p>
+              </div>
+            )}
+            {ex.reps && (
+              <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center">
+                <p className="text-xl font-bold text-orange-700">{ex.reps}</p>
+                <p className="text-xs text-orange-600 font-medium">Repeticiones</p>
+              </div>
+            )}
+            {ex.rest_seconds && (
+              <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-center">
+                <p className="text-xl font-bold text-purple-700">{ex.rest_seconds}s</p>
+                <p className="text-xs text-purple-600 font-medium">Descanso</p>
+              </div>
+            )}
+            {ex.intensity && (
+              <div className={`border rounded-xl p-3 text-center ${INTENSITY_COLOR[ex.intensity] || "bg-gray-50 border-gray-100"}`}>
+                <p className="text-xl font-bold">{ex.intensity}</p>
+                <p className="text-xs font-medium opacity-80">Intensidad</p>
+              </div>
+            )}
+          </div>
+
+          {/* Peso sugerido */}
+          {ex.weight_suggestion && (
+            <div className="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-lg">🏋️</span>
+              <div>
+                <p className="text-xs font-semibold text-green-700">Peso sugerido</p>
+                <p className="text-sm text-green-800">{ex.weight_suggestion}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Técnica */}
+          {ex.technique_tip && (
+            <div className="bg-sky-50 border border-sky-100 rounded-xl p-3">
+              <p className="text-xs font-semibold text-sky-700 mb-1">💡 Consejo de técnica</p>
+              <p className="text-sm text-sky-800 leading-relaxed">{ex.technique_tip}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-3 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── DayDetail ────────────────────────────────────────────────────────────────
 
 function DayDetail({ day, routine, onDone }: { day: RoutineDay; routine: Routine; onDone: () => void }) {
   const [showMarkDone, setShowMarkDone] = useState(false);
+  const [detailEx, setDetailEx] = useState<{ ex: RoutineExercise; index: number } | null>(null);
 
   return (
     <div className="space-y-3">
@@ -294,19 +379,28 @@ function DayDetail({ day, routine, onDone }: { day: RoutineDay; routine: Routine
 
       <div className="space-y-2">
         {day.exercises.map((ex, i) => (
-          <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+          <button
+            key={i}
+            onClick={() => setDetailEx({ ex, index: i })}
+            className="w-full text-left bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all group"
+          >
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">
                   {i + 1}
                 </span>
-                <h4 className="text-sm font-semibold text-gray-900 truncate">{ex.name}</h4>
+                <h4 className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors" title={ex.name}>
+                  {ex.name}
+                </h4>
               </div>
-              {ex.intensity && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${INTENSITY_COLOR[ex.intensity] || "bg-gray-100 text-gray-700"}`}>
-                  {ex.intensity}
-                </span>
-              )}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {ex.intensity && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${INTENSITY_COLOR[ex.intensity] || "bg-gray-100 text-gray-700"}`}>
+                    {ex.intensity}
+                  </span>
+                )}
+                <Info className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-400 transition-colors" />
+              </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
               {ex.sets && (
@@ -330,7 +424,7 @@ function DayDetail({ day, routine, onDone }: { day: RoutineDay; routine: Routine
               {ex.weight_suggestion && (
                 <div className="flex items-center gap-1.5 text-xs text-gray-600">
                   <Weight className="w-3 h-3 text-green-400 flex-shrink-0" />
-                  <span className="truncate">{ex.weight_suggestion}</span>
+                  <span className="truncate" title={ex.weight_suggestion}>{ex.weight_suggestion}</span>
                 </div>
               )}
             </div>
@@ -342,10 +436,10 @@ function DayDetail({ day, routine, onDone }: { day: RoutineDay; routine: Routine
             {ex.technique_tip && (
               <div className="flex gap-1.5 mt-1">
                 <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-gray-500 italic">{ex.technique_tip}</p>
+                <p className="text-xs text-gray-500 italic truncate" title={ex.technique_tip}>{ex.technique_tip}</p>
               </div>
             )}
-          </div>
+          </button>
         ))}
       </div>
 
@@ -374,6 +468,14 @@ function DayDetail({ day, routine, onDone }: { day: RoutineDay; routine: Routine
           day={day}
           onClose={() => setShowMarkDone(false)}
           onDone={() => { setShowMarkDone(false); onDone(); }}
+        />
+      )}
+
+      {detailEx && (
+        <ExerciseDetailModal
+          ex={detailEx.ex}
+          index={detailEx.index}
+          onClose={() => setDetailEx(null)}
         />
       )}
     </div>

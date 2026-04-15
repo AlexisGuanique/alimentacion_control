@@ -223,16 +223,76 @@ function MarkConsumedModal({
   );
 }
 
+// ─── Food detail modal ────────────────────────────────────────────────────────
+
+function FoodDetailModal({ food, onClose }: { food: MealPlanFood; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-gray-900 font-bold text-base leading-tight">{food.name}</h3>
+            <p className="text-gray-400 text-xs mt-0.5">{food.amount}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold flex-shrink-0">✕</button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Macros */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-green-700">{Math.round(food.calories)}</p>
+              <p className="text-xs text-green-600 font-medium">kcal</p>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-blue-700">{Math.round(food.protein_g ?? 0)}g</p>
+              <p className="text-xs text-blue-600 font-medium">Proteína</p>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-yellow-700">{Math.round(food.carbs_g ?? 0)}g</p>
+              <p className="text-xs text-yellow-600 font-medium">Carbohidratos</p>
+            </div>
+            <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center">
+              <p className="text-xl font-bold text-orange-700">{Math.round(food.fat_g ?? 0)}g</p>
+              <p className="text-xs text-orange-600 font-medium">Grasas</p>
+            </div>
+          </div>
+
+          {/* Preparación */}
+          {food.preparation && (
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Preparación</p>
+              <p className="text-sm text-gray-600 leading-relaxed">{food.preparation}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-3 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Food row ─────────────────────────────────────────────────────────────────
 
 function FoodRow({
   food,
   consumed,
   onConsume,
+  onDetail,
 }: {
   food: MealPlanFood;
   consumed: boolean;
   onConsume: () => void;
+  onDetail: () => void;
 }) {
   return (
     <div
@@ -240,19 +300,25 @@ function FoodRow({
         consumed ? "opacity-50" : "hover:bg-gray-50"
       }`}
     >
-      <div className="flex-1 min-w-0">
+      {/* Clickeable para ver detalle */}
+      <button
+        onClick={onDetail}
+        className="flex-1 min-w-0 text-left"
+        title="Ver detalle completo"
+      >
         <p
           className={`text-sm font-medium truncate ${
-            consumed ? "line-through text-gray-400" : "text-gray-800"
+            consumed ? "line-through text-gray-400" : "text-gray-800 hover:text-green-700"
           }`}
+          title={food.name}
         >
           {food.name}
         </p>
-        <p className="text-xs text-gray-400 truncate">{food.amount}</p>
+        <p className="text-xs text-gray-400 truncate" title={food.amount}>{food.amount}</p>
         {food.preparation && (
-          <p className="text-xs text-gray-400 italic truncate">{food.preparation}</p>
+          <p className="text-xs text-gray-400 italic truncate" title={food.preparation}>{food.preparation}</p>
         )}
-      </div>
+      </button>
       <div className="flex items-center gap-2 flex-shrink-0">
         <span className="text-xs text-green-700 font-semibold whitespace-nowrap">
           {Math.round(food.calories)} kcal
@@ -282,12 +348,14 @@ function MealSection({
   consumedMeals,
   onConsumeFood,
   onConsumeMeal,
+  onFoodDetail,
 }: {
   meal: MealPlanMeal;
   consumedFoods: Set<string>;
   consumedMeals: Set<string>;
   onConsumeFood: (food: MealPlanFood) => void;
   onConsumeMeal: (meal: MealPlanMeal) => void;
+  onFoodDetail: (food: MealPlanFood) => void;
 }) {
   const [open, setOpen] = useState(true);
   const mealKey = `${meal.meal_type}-${meal.time_suggestion}`;
@@ -302,22 +370,22 @@ function MealSection({
           ) : (
             <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
           )}
-          <div className="min-w-0">
-            <span className={`font-semibold text-sm ${mealConsumed ? "line-through text-gray-400" : "text-gray-800"}`}>
+          <div className="min-w-0 flex-1">
+            <span className={`font-semibold text-sm block leading-tight ${mealConsumed ? "line-through text-gray-400" : "text-gray-800"}`}>
               {meal.meal_type}
             </span>
             {meal.time_suggestion && (
-              <span className="text-gray-400 text-xs ml-2">{meal.time_suggestion}</span>
+              <span className="text-gray-400 text-xs">{meal.time_suggestion}</span>
             )}
           </div>
         </button>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-green-700 text-sm font-semibold">{Math.round(meal.total_calories)} kcal</span>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <span className="text-green-700 text-sm font-semibold whitespace-nowrap">{Math.round(meal.total_calories)} kcal</span>
           <button
             onClick={() => onConsumeMeal(meal)}
             disabled={mealConsumed}
             title={mealConsumed ? "Comida registrada" : "Registrar comida completa"}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+            className={`px-2 py-0.5 rounded-lg border text-xs font-medium transition-all whitespace-nowrap ${
               mealConsumed
                 ? "border-green-300 text-green-500 cursor-default"
                 : "border-gray-200 text-gray-500 hover:border-green-500 hover:text-green-600"
@@ -337,6 +405,7 @@ function MealSection({
                 food={food}
                 consumed={consumedFoods.has(key) || mealConsumed}
                 onConsume={() => onConsumeFood(food)}
+                onDetail={() => onFoodDetail(food)}
               />
             );
           })}
@@ -362,6 +431,7 @@ function PlanCard({
   const [consumedFoods, setConsumedFoods] = useState<Set<string>>(new Set());
   const [consumedMeals, setConsumedMeals] = useState<Set<string>>(new Set());
   const [consumeTarget, setConsumeTarget] = useState<ConsumeTarget | null>(null);
+  const [detailFood, setDetailFood] = useState<MealPlanFood | null>(null);
   const [toast, setToast] = useState("");
 
   const content: MealPlanContent = JSON.parse(plan.content_json);
@@ -502,6 +572,7 @@ function PlanCard({
                   consumedMeals={consumedMeals}
                   onConsumeFood={(food) => handleConsumeFood(food, meal)}
                   onConsumeMeal={handleConsumeMeal}
+                  onFoodDetail={(food) => setDetailFood(food)}
                 />
               ))}
             </div>
@@ -555,6 +626,14 @@ function PlanCard({
           target={consumeTarget}
           onClose={() => setConsumeTarget(null)}
           onSuccess={handleConsumeSuccess}
+        />
+      )}
+
+      {/* Food detail modal */}
+      {detailFood && (
+        <FoodDetailModal
+          food={detailFood}
+          onClose={() => setDetailFood(null)}
         />
       )}
     </div>
