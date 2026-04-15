@@ -14,6 +14,7 @@ EMAIL_FROM     = os.getenv("EMAIL_FROM", "")
 EMAIL_PASSWORD = os.getenv("EMAIL_APP_PASSWORD", "")
 ADMIN_EMAIL    = os.getenv("ADMIN_EMAIL", "guaniqued@gmail.com")
 APP_BASE_URL   = os.getenv("APP_BASE_URL", "http://localhost:8000")
+FRONTEND_URL   = os.getenv("FRONTEND_URL", "http://localhost:3000")
 _SECRET        = os.getenv("JWT_SECRET", "change-me-in-production")
 
 
@@ -120,26 +121,49 @@ def send_new_user_notification(user_id: str, user_email: str, user_name: str) ->
 
 
 def send_account_activated_email(user_email: str, user_name: str) -> bool:
-    """Notifica al usuario que su cuenta fue activada."""
+    """Notifica al usuario que su cuenta fue activada e incluye link de acceso."""
+    login_url = f"{FRONTEND_URL}/login"
     html = f"""
 <!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:sans-serif;">
   <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);">
-    <div style="background:linear-gradient(135deg,#16a34a,#059669);padding:28px 32px;text-align:center;">
-      <div style="font-size:48px;margin-bottom:8px;">🎉</div>
-      <h1 style="margin:0;color:#fff;font-size:22px;">¡Tu cuenta está activa!</h1>
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#16a34a,#059669);padding:32px;text-align:center;">
+      <div style="font-size:52px;margin-bottom:10px;">🎉</div>
+      <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;">¡Tu cuenta está activa!</h1>
+      <p style="margin:6px 0 0;color:#bbf7d0;font-size:14px;">NutriTrack IA</p>
     </div>
-    <div style="padding:28px 32px;text-align:center;">
-      <p style="color:#374151;font-size:16px;">Hola, <strong>{user_name}</strong></p>
-      <p style="color:#6b7280;font-size:14px;margin:0 0 24px;">
-        Tu cuenta en NutriTrack IA ha sido aprobada. Ya puedes iniciar sesión y comenzar tu seguimiento nutricional.
+
+    <!-- Body -->
+    <div style="padding:32px;text-align:center;">
+      <p style="color:#374151;font-size:16px;margin:0 0 8px;">Hola, <strong>{user_name}</strong> 👋</p>
+      <p style="color:#6b7280;font-size:14px;line-height:1.7;margin:0 0 28px;">
+        Tu cuenta ha sido <strong style="color:#16a34a;">aprobada por el administrador</strong>.<br>
+        Ya puedes iniciar sesión y comenzar tu seguimiento nutricional personalizado con inteligencia artificial.
       </p>
-      <p style="color:#9ca3af;font-size:12px;">¡Bienvenido a bordo! 🌿</p>
+
+      <a href="{login_url}"
+         style="display:inline-block;background:linear-gradient(135deg,#16a34a,#059669);color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;letter-spacing:.3px;box-shadow:0 4px 12px rgba(22,163,74,.3);">
+        🚀 Iniciar sesión en NutriTrack IA
+      </a>
+
+      <p style="color:#9ca3af;font-size:12px;margin-top:20px;">
+        Si el botón no funciona, copia este enlace:<br>
+        <a href="{login_url}" style="color:#16a34a;">{login_url}</a>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f9fafb;padding:16px 32px;border-top:1px solid #e5e7eb;">
+      <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
+        NutriTrack IA · Este correo fue generado automáticamente
+      </p>
     </div>
   </div>
 </body>
 </html>
 """
-    return _send(f"[NutriTrack IA] ¡Tu cuenta ha sido activada!", html, to=user_email)
+    return _send("¡Tu cuenta en NutriTrack IA ha sido activada! 🎉", html, to=user_email)
