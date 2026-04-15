@@ -1010,6 +1010,18 @@ def admin_deactivate_user(user_id: str, secret: str = "", session: Session = Dep
     return {"ok": True, "message": f"Usuario {user.email} desactivado."}
 
 
+@app.delete("/admin/users/{user_id}", include_in_schema=False)
+def admin_delete_user(user_id: str, secret: str = "", session: Session = Depends(get_session)):
+    _check_admin(secret)
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    email = user.email
+    session.delete(user)
+    session.commit()
+    return {"ok": True, "message": f"Usuario {email} eliminado."}
+
+
 def _html_result(kind: str, title: str, body: str) -> str:
     colors = {
         "success": ("#16a34a", "#dcfce7", "✅"),
