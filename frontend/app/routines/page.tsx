@@ -138,6 +138,8 @@ function MarkDoneModal({
     setError("");
     try {
       const workoutType = detectWorkoutType(day.focus);
+      // Usar la fecha local del usuario para evitar desfases de zona horaria
+      const localDate = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local
       await createWorkout({
         workout_type: workoutType,
         duration_minutes: duration,
@@ -154,6 +156,7 @@ function MarkDoneModal({
           routine_focus: day.focus,
           from_routine: true,
         }),
+        recorded_at: localDate,
       });
       onDone();
     } catch (err: unknown) {
@@ -561,7 +564,9 @@ function RoutineCard({
       {doneFeedback && (
         <div className="flex items-center gap-2 px-5 py-3 bg-green-50 border-b border-green-100">
           <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-          <p className="text-sm font-medium text-green-700">¡Entrenamiento registrado! Revísalo en Ejercicios.</p>
+          <p className="text-sm font-medium text-green-700">
+            ¡Entrenamiento registrado! Búscalo en Ejercicios → día de hoy ({new Date().toLocaleDateString("es-AR", { day: "numeric", month: "long" })}).
+          </p>
         </div>
       )}
 
