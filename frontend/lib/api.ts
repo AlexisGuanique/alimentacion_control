@@ -115,7 +115,10 @@ export async function createMealManual(meal: {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ ...meal, source: meal.source || "Manual" }),
   });
-  if (!res.ok) throw new Error("Error al crear comida");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.detail || `Error ${res.status} al crear comida`);
+  }
   return res.json();
 }
 
@@ -125,7 +128,10 @@ export async function createMealAI(text: string, recorded_at?: string): Promise<
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ text, ...(recorded_at ? { recorded_at } : {}) }),
   });
-  if (!res.ok) throw new Error("Error al analizar alimento");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.detail || `Error ${res.status} al analizar alimento`);
+  }
   return res.json();
 }
 

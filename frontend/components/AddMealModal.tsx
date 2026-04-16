@@ -16,9 +16,21 @@ interface AddMealModalProps {
   selectedDate?: string;
 }
 
+function buildRecordedAt(selectedDate?: string): string | undefined {
+  if (!selectedDate) return undefined;
+  const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+  if (isoDate.test(selectedDate)) return `${selectedDate}T12:00:00`;
+  const parsed = new Date(selectedDate);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}T12:00:00`;
+}
+
 export default function AddMealModal({ onClose, onAdded, selectedDate }: AddMealModalProps) {
-  // Convierte "YYYY-MM-DD" a un ISO string de mediodía para evitar problemas de zona horaria
-  const recordedAt = selectedDate ? `${selectedDate}T12:00:00` : undefined;
+  // Normaliza fecha para evitar errores cuando sessionStorage trae formatos viejos.
+  const recordedAt = buildRecordedAt(selectedDate);
   const [tab, setTab] = useState<"manual" | "ai">("ai");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

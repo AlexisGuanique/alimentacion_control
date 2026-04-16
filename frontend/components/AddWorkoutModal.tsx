@@ -26,10 +26,22 @@ interface Props {
   selectedDate?: string;
 }
 
+function buildRecordedAt(selectedDate?: string): string | undefined {
+  if (!selectedDate) return undefined;
+  const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+  if (isoDate.test(selectedDate)) return `${selectedDate}T12:00:00`;
+  const parsed = new Date(selectedDate);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}T12:00:00`;
+}
+
 export default function AddWorkoutModal({ userWeightKg, onClose, onAdded, selectedDate }: Props) {
   const weight = userWeightKg || 70;
-  // Convierte "YYYY-MM-DD" a un ISO string de mediodía para evitar problemas de zona horaria
-  const recordedAt = selectedDate ? `${selectedDate}T12:00:00` : undefined;
+  // Normaliza fecha para evitar errores cuando sessionStorage trae formatos viejos.
+  const recordedAt = buildRecordedAt(selectedDate);
   const [mode, setMode] = useState<"manual" | "ai">("ai");
 
   // ── Manual state ──────────────────────────────────────────────────────────
@@ -89,7 +101,9 @@ export default function AddWorkoutModal({ userWeightKg, onClose, onAdded, select
         ...(recordedAt ? { recorded_at: recordedAt } : {}),
       });
       onAdded();
-    } catch { setError("No se pudo registrar el entrenamiento."); }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "No se pudo registrar el entrenamiento.");
+    }
     finally { setLoading(false); }
   };
 
@@ -106,9 +120,14 @@ export default function AddWorkoutModal({ userWeightKg, onClose, onAdded, select
         },
         body: JSON.stringify({ text: aiText, ...(recordedAt ? { recorded_at: recordedAt } : {}) }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload?.detail || "No se pudo analizar el entrenamiento.");
+      }
       onAdded();
-    } catch { setError("No se pudo analizar el entrenamiento. Intenta de nuevo."); }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "No se pudo analizar el entrenamiento. Intenta de nuevo.");
+    }
     finally { setLoading(false); }
   };
 
