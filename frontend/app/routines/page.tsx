@@ -317,9 +317,9 @@ function InfoRow({ icon, label, text }: { icon: string; label: string; text: str
 function ExerciseDetailModal({ ex, index, onClose }: { ex: RoutineExercise; index: number; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-hidden border border-gray-100 flex flex-col">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">
               {index + 1}
@@ -334,7 +334,7 @@ function ExerciseDetailModal({ ex, index, onClose }: { ex: RoutineExercise; inde
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold flex-shrink-0">✕</button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto min-h-0">
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-2">
             {ex.sets && (
@@ -383,7 +383,7 @@ function ExerciseDetailModal({ ex, index, onClose }: { ex: RoutineExercise; inde
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-100">
+        <div className="px-5 py-3 border-t border-gray-100 flex-shrink-0">
           <button
             onClick={onClose}
             className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl transition-colors"
