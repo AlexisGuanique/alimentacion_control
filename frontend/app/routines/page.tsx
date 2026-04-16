@@ -118,20 +118,48 @@ function formatDate(iso: string) {
   });
 }
 
+// ── Estimación automática de duración y calorías ─────────────────────────────
+
+const MET_VALUES: Record<string, number> = {
+  Fuerza: 5.0, Cardio: 7.5, HIIT: 9.0,
+  Flexibilidad: 3.5, Caminata: 3.5,
+  Natación: 7.0, Ciclismo: 7.5, Deporte: 6.0, Otro: 5.0,
+};
+
+function estimateWorkout(day: RoutineDay, weightKg: number): { duration: number; calories: number } {
+  // Duración: ~6 min por ejercicio (series + descansos + transición)
+  const exerciseCount = day.exercises.length;
+  const estimatedDuration = Math.min(90, Math.max(20, exerciseCount * 6));
+  const workoutType = detectWorkoutType(day.focus);
+  const met = MET_VALUES[workoutType] ?? 5.0;
+  const estimatedCalories = Math.round(met * weightKg * (estimatedDuration / 60));
+  return { duration: estimatedDuration, calories: estimatedCalories };
+}
+
 // ── MarkDoneModal ─────────────────────────────────────────────────────────────
 
 function MarkDoneModal({
-  routine, day, onClose, onDone,
+  routine, day, onClose, onDone, userWeightKg = 75,
 }: {
   routine: Routine;
   day: RoutineDay;
   onClose: () => void;
   onDone: () => void;
+  userWeightKg?: number;
 }) {
-  const [duration, setDuration] = useState(60);
-  const [calories, setCalories] = useState(350);
+  const initial = estimateWorkout(day, userWeightKg);
+  const [duration, setDuration] = useState(initial.duration);
+  const [calories, setCalories] = useState(initial.calories);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Recalcular calorías automáticamente cuando cambia la duración
+  const handleDurationChange = (newDuration: number) => {
+    setDuration(newDuration);
+    const workoutType = detectWorkoutType(day.focus);
+    const met = MET_VALUES[workoutType] ?? 5.0;
+    setCalories(Math.round(met * userWeightKg * (newDuration / 60)));
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -212,27 +240,28 @@ function MarkDoneModal({
                 min={10}
                 max={300}
                 value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
+                onChange={(e) => handleDurationChange(Number(e.target.value))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-1.5 block">
-                <Zap className="w-3.5 h-3.5 inline mr-1 text-orange-400" />
+              <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 text-orange-400" />
                 Kcal quemadas
+                <span className="text-xs font-normal text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">✨ Auto</span>
               </label>
               <input
                 type="number"
                 min={0}
                 value={calories}
                 onChange={(e) => setCalories(Number(e.target.value))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
+                className="w-full border border-green-200 bg-green-50/30 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
               />
             </div>
           </div>
 
           <p className="text-xs text-gray-400 text-center">
-            El entrenamiento se agregará a tu historial de Ejercicios de hoy.
+            Calorías estimadas automáticamente según tipo de ejercicio y duración. Puedes ajustarlas.
           </p>
 
           {error && <p className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</p>}
@@ -369,7 +398,7 @@ function ExerciseDetailModal({ ex, index, onClose }: { ex: RoutineExercise; inde
 
 // ── DayDetail ────────────────────────────────────────────────────────────────
 
-function DayDetail({ day, routine, onDone }: { day: RoutineDay; routine: Routine; onDone: () => void }) {
+function DayDetail({ day, routine, onDone, userWeightKg = 75 }: { day: RoutineDay; routine: Routine; onDone: () => void; userWeightKg?: number }) {
   const [showMarkDone, setShowMarkDone] = useState(false);
   const [detailEx, setDetailEx] = useState<{ ex: RoutineExercise; index: number } | null>(null);
 
@@ -476,6 +505,7 @@ function DayDetail({ day, routine, onDone }: { day: RoutineDay; routine: Routine
           day={day}
           onClose={() => setShowMarkDone(false)}
           onDone={() => { setShowMarkDone(false); onDone(); }}
+          userWeightKg={userWeightKg}
         />
       )}
 
@@ -497,11 +527,13 @@ function RoutineCard({
   onDelete,
   onEdit,
   onUpdate,
+  userWeightKg = 75,
 }: {
   routine: Routine;
   onDelete: (id: number) => void;
   onEdit: (r: Routine) => void;
   onUpdate: (updated: Routine) => void;
+  userWeightKg?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [activeDay, setActiveDay] = useState(0);
@@ -612,6 +644,7 @@ function RoutineCard({
                 day={content.days[activeDay]}
                 routine={routine}
                 onDone={handleDone}
+                userWeightKg={userWeightKg}
               />
             </>
           )}
@@ -764,6 +797,7 @@ export default function RoutinesPage() {
                   onDelete={(id) => setConfirmId(id)}
                   onEdit={(r) => setEditRoutine(r)}
                   onUpdate={handleUpdated}
+                  userWeightKg={user?.weight_kg ?? 75}
                 />
               ))}
             </div>
