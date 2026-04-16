@@ -220,7 +220,10 @@ export async function createWorkout(data: {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Error al registrar entrenamiento");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.detail || `Error ${res.status} al registrar entrenamiento`);
+  }
   return res.json();
 }
 

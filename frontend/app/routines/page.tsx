@@ -92,14 +92,19 @@ const INTENSITY_COLOR: Record<string, string> = {
   Moderada: "bg-blue-100 text-blue-700",
 };
 
-function detectWorkoutType(focus: string): string {
+// Valores válidos del enum WorkoutType en el backend
+const VALID_WORKOUT_TYPES = ["Cardio","Fuerza","HIIT","Flexibilidad","Deporte","Caminata","Natación","Ciclismo","Otro"] as const;
+type WorkoutTypeValue = typeof VALID_WORKOUT_TYPES[number];
+
+function detectWorkoutType(focus: string): WorkoutTypeValue {
   const f = focus.toLowerCase();
-  if (f.includes("cardio") || f.includes("carrera")) return "Cardio";
+  if (f.includes("cardio") || f.includes("carrera") || f.includes("correr")) return "Cardio";
   if (f.includes("hiit")) return "HIIT";
-  if (f.includes("flexib") || f.includes("movilidad") || f.includes("yoga")) return "Flexibilidad";
-  if (f.includes("natación") || f.includes("natacion")) return "Natación";
+  if (f.includes("flexib") || f.includes("movilidad") || f.includes("yoga") || f.includes("stretching")) return "Flexibilidad";
+  if (f.includes("natación") || f.includes("natacion") || f.includes("piscina")) return "Natación";
   if (f.includes("ciclismo") || f.includes("bicicleta")) return "Ciclismo";
   if (f.includes("caminata") || f.includes("caminar")) return "Caminata";
+  if (f.includes("deporte") || f.includes("fútbol") || f.includes("tenis") || f.includes("baloncesto")) return "Deporte";
   return "Fuerza";
 }
 
@@ -151,8 +156,8 @@ function MarkDoneModal({
         }),
       });
       onDone();
-    } catch {
-      setError("No se pudo registrar el entrenamiento. Intenta de nuevo.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "No se pudo registrar el entrenamiento.");
     } finally {
       setLoading(false);
     }
